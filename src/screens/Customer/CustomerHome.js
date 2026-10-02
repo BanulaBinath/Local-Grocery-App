@@ -13,6 +13,10 @@ export default function CustomerHome() {
     router.push("/order-history");
   };
 
+  const handleProducts = () => {
+    router.push("/customer-products");
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -43,7 +47,7 @@ export default function CustomerHome() {
           </Text>
 
           {/* Products */}
-          <TouchableOpacity style={styles.primaryCard}>
+          <TouchableOpacity style={styles.primaryCard} onPress={handleProducts}>
             <View>
               <Text style={styles.cardIcon}>🛒</Text>
               <Text style={styles.cardTitle}>Browse Products</Text>
@@ -76,7 +80,7 @@ export default function CustomerHome() {
             <Text style={styles.activeNavText}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem}>
+          <TouchableOpacity style={styles.navItem} onPress={handleProducts}>
             <Text style={styles.navIcon}>🛒</Text>
             <Text style={styles.navText}>Products</Text>
           </TouchableOpacity>

@@ -8,7 +8,6 @@ export default StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: "#F5F6FF",
   },
 
   loadingContainer: {
@@ -60,7 +59,7 @@ export default StyleSheet.create({
 
   list: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
 
   emptyContainer: {
@@ -85,117 +84,117 @@ export default StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     textAlign: "center",
-    lineHeight: 20,
   },
 
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-  },
-
-  topRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
   },
 
-  orderId: {
-    fontSize: 16,
+  cardLeft: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  productIcon: {
+    fontSize: 24,
+  },
+
+  cardBody: {
+    flex: 1,
+  },
+
+  productName: {
+    fontSize: 15,
     fontWeight: "700",
     color: "#111827",
   },
 
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: "#E8F5E9",
-  },
-
-  statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#2E7D32",
-  },
-
-  dateText: {
+  productMeta: {
+    marginTop: 2,
     fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 10,
+    color: "#6B7280",
   },
 
-  stepperRow: {
+  productPrice: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E3A8A",
+  },
+
+  qtyControls: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-
-  stepDot: {
-    flex: 1,
     alignItems: "center",
   },
 
-  stepCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
+  qtyButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  stepCircleActive: {
-    borderColor: "#2E7D32",
-    backgroundColor: "#2E7D32",
-  },
-
-  stepCheck: {
-    color: "#FFFFFF",
-    fontSize: 10,
+  qtyButtonText: {
+    fontSize: 16,
     fontWeight: "700",
+    color: "#1E3A8A",
   },
 
-  stepLabel: {
-    marginTop: 4,
-    fontSize: 9,
-    color: "#9CA3AF",
-    textAlign: "center",
-  },
-
-  stepLabelActive: {
-    color: "#2E7D32",
-    fontWeight: "700",
-  },
-
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-
-  metaText: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-
-  totalText: {
+  qtyValue: {
+    marginHorizontal: 10,
     fontSize: 14,
     fontWeight: "700",
     color: "#111827",
+    minWidth: 16,
+    textAlign: "center",
   },
 
-  cancelNote: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#DC2626",
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  footerLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    maxWidth: 180,
+  },
+
+  placeButton: {
+    height: 46,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: "#1E3A8A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  placeButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });
