@@ -87,7 +87,7 @@ export default function CustomerHome() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
-            <Text style={styles.navIcon}>💬</Text>
+            <Text style={styles.navIcon}>🗨️</Text>
             <Text style={styles.navText}>Message</Text>
           </TouchableOpacity>
         </View>
@@ -95,3 +95,4 @@ export default function CustomerHome() {
     </SafeAreaView>
   );
 }
+
