@@ -87,8 +87,8 @@ export default function CustomerHome() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
-            <Text style={styles.navIcon}>👤</Text>
-            <Text style={styles.navText}>Profile</Text>
+            <Text style={styles.navIcon}>💬</Text>
+            <Text style={styles.navText}>Message</Text>
           </TouchableOpacity>
         </View>
       </View>
