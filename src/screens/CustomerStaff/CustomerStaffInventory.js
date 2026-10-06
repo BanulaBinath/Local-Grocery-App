@@ -12,9 +12,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
@@ -36,6 +38,7 @@ const emptyForm = {
   stockQuantity: "",
   unit: "kg",
   description: "",
+  image: "",
 };
 
 export default function CustomerStaffInventory() {
@@ -50,13 +53,27 @@ export default function CustomerStaffInventory() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const getImageUrl = (image) => {
-    if (!image) return null;
-    if (image.startsWith("file://")) return null;
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      return image;
+  const getImageUrl = (product) => {
+    if (product.image) {
+      if (
+        product.image.startsWith("http://") ||
+        product.image.startsWith("https://") ||
+        product.image.startsWith("file://") || 
+        product.image.startsWith("content://") || 
+        product.image.startsWith("data:") || 
+        product.image.startsWith("blob:")
+      ) {
+        return product.image;
+      }
+      return `${API_URL}${product.image.startsWith("/") ? product.image : `/${product.image}`}`;
     }
-    return `${API_URL}${image.startsWith("/") ? image : `/${image}`}`;
+    const name = (product.name || "").toLowerCase();
+    if (name.includes("banana")) return "https://images.unsplash.com/photo-1571501478200-720615709ee0?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Vegetables") return "https://images.unsplash.com/photo-1566385101042-1a0e10ccff12?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Fruits") return "https://images.unsplash.com/photo-1610832958506-aa56368149eb?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Grains") return "https://images.unsplash.com/photo-1586201375761-83865001e8aa?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Spices") return "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=200&q=80";
+    return null;
   };
 
   const getCategoryIcon = (category) => {
@@ -124,8 +141,32 @@ export default function CustomerStaffInventory() {
       stockQuantity: String(product.stockQuantity ?? ""),
       unit: product.unit || "kg",
       description: product.description || "",
+      image: product.image || "",
     });
     setModalVisible(true);
+  };
+
+  const pickImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please allow photo library access.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        setForm({ ...form, image: result.assets[0].uri });
+      }
+    } catch (error) {
+      console.log("Image picker error:", error);
+      Alert.alert("Error", "Could not select image.");
+    }
   };
 
   const handleSave = async () => {
@@ -137,16 +178,31 @@ export default function CustomerStaffInventory() {
     try {
       setSaving(true);
 
-      const payload = {
-        name: form.name.trim(),
-        category: form.category.trim(),
-        price: Number(form.price),
-        stockQuantity: Number(form.stockQuantity),
-        unit: form.unit.trim(),
-        description: form.description.trim(),
-        inStock: Number(form.stockQuantity) > 0,
-        createdBy: staffId,
-      };
+      const formData = new FormData();
+      formData.append("name", form.name.trim());
+      formData.append("category", form.category.trim());
+      formData.append("price", String(form.price));
+      formData.append("stockQuantity", String(form.stockQuantity));
+      formData.append("unit", form.unit.trim());
+      formData.append("description", form.description.trim());
+      formData.append("inStock", String(Number(form.stockQuantity) > 0));
+      if (staffId) formData.append("createdBy", staffId);
+
+      if (form.image && !form.image.startsWith("http://") && !form.image.startsWith("https://")) {
+        const filename = form.image.split("/").pop() || "product-image.jpg";
+        
+        if (Platform.OS === 'web') {
+          const response = await fetch(form.image);
+          const blob = await response.blob();
+          formData.append("image", blob, "product-image.jpg");
+        } else {
+          formData.append("image", {
+            uri: form.image,
+            name: filename,
+            type: "image/jpeg"
+          });
+        }
+      }
 
       const url = editingProduct
         ? `${API_URL}/api/shop-products/${editingProduct._id}`
@@ -154,10 +210,7 @@ export default function CustomerStaffInventory() {
 
       const response = await fetch(url, {
         method: editingProduct ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const data = await response.json();
@@ -178,6 +231,44 @@ export default function CustomerStaffInventory() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!editingProduct) return;
+    
+    Alert.alert(
+      "Confirm Removal",
+      "Are you sure you want to remove this product?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setSaving(true);
+              const response = await fetch(`${API_URL}/api/shop-products/${editingProduct._id}`, {
+                method: "DELETE"
+              });
+              
+              if (response.ok) {
+                setModalVisible(false);
+                fetchProducts();
+                Alert.alert("Success", "Product removed.");
+              } else {
+                const data = await response.json();
+                Alert.alert("Error", data.message || "Could not remove product.");
+              }
+            } catch (error) {
+              console.log("Remove product error:", error);
+              Alert.alert("Connection Error", "Could not connect to the server.");
+            } finally {
+              setSaving(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Filter products by category and search string
@@ -295,7 +386,7 @@ export default function CustomerStaffInventory() {
             </View>
           ) : (
             filteredProducts.map((product) => {
-              const imageUrl = getImageUrl(product.image);
+              const imageUrl = getImageUrl(product);
               const inStock = product.inStock && product.stockQuantity > 0;
               const catIcon = getCategoryIcon(product.category);
 
@@ -417,6 +508,40 @@ export default function CustomerStaffInventory() {
                   {editingProduct ? "Edit Product Details" : "Add New Product"}
                 </Text>
 
+                <Text style={styles.inputLabel}>Product Image</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      backgroundColor: "#F1F5F9",
+                      borderRadius: 8,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 16,
+                      borderWidth: 1,
+                      borderColor: "#E2E8F0",
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {form.image ? (
+                      <Image
+                        source={{ uri: getImageUrl({ image: form.image }) }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 24 }}>📷</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={pickImage}>
+                    <Text style={{ color: "#15803D", fontWeight: "600" }}>
+                      {form.image ? "Change Image" : "Upload Image"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={styles.inputLabel}>Product Name</Text>
                 <TextInput
                   style={styles.input}
@@ -498,6 +623,17 @@ export default function CustomerStaffInventory() {
                         : "Add to Store Inventory"}
                   </Text>
                 </TouchableOpacity>
+                {editingProduct && (
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: "#DC2626", marginTop: 8 }]}
+                    onPress={handleDelete}
+                    disabled={saving}
+                  >
+                    <Text style={styles.saveButtonText}>
+                      Remove Product
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   onPress={() => setModalVisible(false)}

@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -58,6 +59,22 @@ export default function CustomerProducts() {
         setRefreshing(false);
       }
     }
+  };
+
+  const getImageUrl = (product) => {
+    if (product.image && !product.image.startsWith("file://")) {
+      if (product.image.startsWith("http://") || product.image.startsWith("https://")) {
+        return product.image;
+      }
+      return `${API_URL}${product.image.startsWith("/") ? product.image : `/${product.image}`}`;
+    }
+    const name = (product.name || "").toLowerCase();
+    if (name.includes("banana")) return "https://images.unsplash.com/photo-1571501478200-720615709ee0?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Vegetables") return "https://images.unsplash.com/photo-1566385101042-1a0e10ccff12?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Fruits") return "https://images.unsplash.com/photo-1610832958506-aa56368149eb?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Grains") return "https://images.unsplash.com/photo-1586201375761-83865001e8aa?auto=format&fit=crop&w=200&q=80";
+    if (product.category === "Spices") return "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=200&q=80";
+    return null;
   };
 
   useFocusEffect(
@@ -302,11 +319,20 @@ export default function CustomerProducts() {
                     style={[
                       styles.cardLeft,
                       isOutOfStock && styles.cardLeftDisabled,
+                      { overflow: 'hidden' }
                     ]}
                   >
-                    <Text style={styles.productIcon}>
-                      {getProductIcon(product)}
-                    </Text>
+                    {getImageUrl(product) ? (
+                      <Image
+                        source={{ uri: getImageUrl(product) }}
+                        style={{ width: '100%', height: '100%', borderRadius: 12 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.productIcon}>
+                        {getProductIcon(product)}
+                      </Text>
+                    )}
                   </View>
 
                   <View style={styles.cardBody}>

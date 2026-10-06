@@ -58,6 +58,94 @@ export default StyleSheet.create({
     width: 40,
   },
 
+  listContainer: {
+    padding: 16,
+  },
+
+  inboxCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+  avatarBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: PRIMARY_SOFT,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  avatarText: {
+    fontSize: 22,
+  },
+
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+
+  inboxContent: {
+    flex: 1,
+  },
+
+  inboxHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  inboxName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  inboxTime: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+
+  inboxLastMsgRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  inboxLastMsg: {
+    fontSize: 13,
+    color: "#4B5563",
+    flex: 1,
+    marginRight: 10,
+  },
+
+  inboxOrderBadge: {
+    backgroundColor: PRIMARY_SOFT,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  inboxOrderText: {
+    fontSize: 10,
+    color: PRIMARY,
+    fontWeight: "700",
+  },
+
   chatList: {
     padding: 16,
     paddingBottom: 24,
@@ -65,10 +153,10 @@ export default StyleSheet.create({
 
   bubble: {
     maxWidth: "80%",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
   },
 
   staffBubble: {
@@ -79,13 +167,15 @@ export default StyleSheet.create({
 
   customerBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     borderBottomLeftRadius: 4,
   },
 
   bubbleText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
 
   staffBubbleText: {
@@ -97,10 +187,18 @@ export default StyleSheet.create({
   },
 
   timeText: {
-    marginTop: 4,
-    fontSize: 10,
+    marginTop: 6,
+    fontSize: 11,
     opacity: 0.7,
     alignSelf: "flex-end",
+  },
+
+  timeTextStaff: {
+    color: "#FFFFFF",
+  },
+
+  timeTextCustomer: {
+    color: "#6B7280",
   },
 
   inputRow: {
@@ -114,18 +212,20 @@ export default StyleSheet.create({
 
   input: {
     flex: 1,
-    height: 44,
+    minHeight: 44,
+    maxHeight: 100,
     borderRadius: 22,
     backgroundColor: "#F3F4F6",
     paddingHorizontal: 16,
-    fontSize: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: "#111827",
     marginRight: 10,
   },
 
   sendButton: {
     height: 44,
-    paddingHorizontal: 18,
+    width: 44,
     borderRadius: 22,
     backgroundColor: PRIMARY,
     alignItems: "center",
@@ -134,8 +234,7 @@ export default StyleSheet.create({
 
   sendButtonText: {
     color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 14,
+    fontSize: 18,
   },
 
   // Bottom Navigation

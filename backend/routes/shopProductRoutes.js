@@ -1,8 +1,37 @@
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
 
 const ShopProduct = require("../models/ShopProduct");
 
 const router = express.Router();
+
+// ========================================
+// IMAGE UPLOAD CONFIGURATION
+// ========================================
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, "../uploads"));
+  },
+  filename: function (req, file, cb) {
+    const extension = path.extname(file.originalname);
+    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + extension;
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPG, JPEG, PNG and WEBP images are allowed."));
+    }
+  },
+});
 
 // ==================================================
 // GET ALL ACTIVE SHOP PRODUCTS (customers + staff)
@@ -60,7 +89,7 @@ router.get("/:productId", async (req, res) => {
 // ==================================================
 // CREATE SHOP PRODUCT (Customer Staff)
 // ==================================================
-router.post("/", async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   try {
     const {
       name,
@@ -87,7 +116,7 @@ router.post("/", async (req, res) => {
       price: Number(price),
       stockQuantity: Number(stockQuantity),
       unit: unit ? String(unit).trim() : "pcs",
-      image: image || "",
+      image: req.file ? `/uploads/${req.file.filename}` : (image || ""),
       inStock:
         inStock === undefined
           ? Number(stockQuantity) > 0
@@ -113,7 +142,7 @@ router.post("/", async (req, res) => {
 // ==================================================
 // UPDATE SHOP PRODUCT
 // ==================================================
-router.put("/:productId", async (req, res) => {
+router.put("/:productId", upload.single("image"), async (req, res) => {
   try {
     const product = await ShopProduct.findById(req.params.productId);
 
@@ -145,7 +174,11 @@ router.put("/:productId", async (req, res) => {
       product.stockQuantity = Number(stockQuantity);
     }
     if (unit !== undefined) product.unit = String(unit).trim();
-    if (image !== undefined) product.image = image;
+    if (req.file) {
+      product.image = `/uploads/${req.file.filename}`;
+    } else if (image !== undefined && image !== "") {
+      product.image = image;
+    }
     if (inStock !== undefined) product.inStock = Boolean(inStock);
     if (status !== undefined) product.status = status;
 
