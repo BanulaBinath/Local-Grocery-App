@@ -57,6 +57,51 @@ export default StyleSheet.create({
     width: 40,
   },
 
+  // Category Filters
+  categoriesScroll: {
+    maxHeight: 56,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+
+  categoriesContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+
+  categoryPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    marginRight: 8,
+  },
+
+  categoryPillActive: {
+    backgroundColor: "#1E3A8A",
+  },
+
+  categoryIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+
+  categoryTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
   list: {
     padding: 16,
     paddingBottom: 120,
@@ -97,6 +142,11 @@ export default StyleSheet.create({
     alignItems: "center",
   },
 
+  cardDisabled: {
+    backgroundColor: "#FAFAFA",
+    borderColor: "#E5E7EB",
+  },
+
   cardLeft: {
     width: 48,
     height: 48,
@@ -107,12 +157,17 @@ export default StyleSheet.create({
     marginRight: 12,
   },
 
+  cardLeftDisabled: {
+    backgroundColor: "#F3F4F6",
+  },
+
   productIcon: {
     fontSize: 24,
   },
 
   cardBody: {
     flex: 1,
+    marginRight: 8,
   },
 
   productName: {
@@ -134,6 +189,40 @@ export default StyleSheet.create({
     color: "#1E3A8A",
   },
 
+  stockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  outOfStockBadge: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+
+  outOfStockText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#B91C1C",
+  },
+
+  inStockBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+
+  inStockText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#15803D",
+  },
+
   qtyControls: {
     flexDirection: "row",
     alignItems: "center",
@@ -148,10 +237,18 @@ export default StyleSheet.create({
     justifyContent: "center",
   },
 
+  qtyButtonDisabled: {
+    backgroundColor: "#F3F4F6",
+  },
+
   qtyButtonText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1E3A8A",
+  },
+
+  qtyButtonTextDisabled: {
+    color: "#9CA3AF",
   },
 
   qtyValue: {
@@ -198,3 +295,4 @@ export default StyleSheet.create({
     fontSize: 14,
   },
 });
+

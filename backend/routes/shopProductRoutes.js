@@ -151,6 +151,8 @@ router.put("/:productId", async (req, res) => {
 
     if (product.stockQuantity <= 0) {
       product.inStock = false;
+    } else if (inStock === undefined) {
+      product.inStock = true;
     }
 
     await product.save();
