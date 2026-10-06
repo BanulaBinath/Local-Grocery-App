@@ -20,11 +20,14 @@ import { router, useFocusEffect } from "expo-router";
 import { API_URL } from "../../constants/api";
 import styles from "./CustomerStaffDashboard.styles";
 
-const CANCEL_REASONS = [
-  "Out of stock",
-  "Delivery person unavailable",
-  "Customer requested cancellation",
+const staffBannerImage = require("../../../assets/images/staff_banner.png");
+
+const REJECTION_REASONS = [
   "Unable to fulfill order",
+  "Store temporarily closed",
+  "Item quality/damage issue",
+  "Delivery address unreachable",
+  "Other / Custom reason",
 ];
 
 export default function CustomerStaffDashboard() {
@@ -32,10 +35,14 @@ export default function CustomerStaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [staffId, setStaffId] = useState(null);
+  const [selectedStatusTab, setSelectedStatusTab] = useState("all");
+  const [staff, setStaff] = useState(null);
+
+  // Rejection Modal state
   const [cancelVisible, setCancelVisible] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState(null);
-  const [selectedReason, setSelectedReason] = useState(CANCEL_REASONS[0]);
+  const [selectedReason, setSelectedReason] = useState(REJECTION_REASONS[0]);
+  const [customReasonText, setCustomReasonText] = useState("");
 
   const handleHome = () => {
     router.replace("/customer-staff-dashboard");
@@ -63,14 +70,13 @@ export default function CustomerStaffDashboard() {
   };
 
   const formatDate = (value) => {
-    if (!value) return "Unknown";
+    if (!value) return "Just now";
 
     const date = new Date(value);
 
     return date.toLocaleString("en-GB", {
       day: "2-digit",
       month: "short",
-      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
@@ -86,7 +92,7 @@ export default function CustomerStaffDashboard() {
       case "preparing":
         return "Preparing";
       case "ready":
-        return "Ready for Delivery";
+        return "Ready for Pickup";
       case "completed":
         return "Completed";
       case "cancelled":
@@ -130,13 +136,12 @@ export default function CustomerStaffDashboard() {
     }
   };
 
-  const fetchOrders = async (searchTerm = search) => {
+  const fetchOrders = async (searchTerm = search, isSilent = false) => {
     try {
       const staffData = await AsyncStorage.getItem("customerStaff");
 
       if (staffData) {
-        const staff = JSON.parse(staffData);
-        setStaffId(staff.id);
+        setStaff(JSON.parse(staffData));
       }
 
       const query = searchTerm
@@ -147,32 +152,41 @@ export default function CustomerStaffDashboard() {
       const data = await response.json();
 
       if (response.ok) {
+        // Show active incoming orders
         const incoming = (data.orders || []).filter((order) =>
           ["pending", "accepted", "preparing", "ready"].includes(order.status),
         );
         setOrders(incoming);
-      } else {
+      } else if (!isSilent) {
         Alert.alert("Error", data.message || "Could not load orders.");
       }
     } catch (error) {
-      console.log("Fetch customer staff orders error:", error);
-      Alert.alert("Connection Error", "Could not connect to the server.");
+      if (!isSilent) {
+        console.log("Fetch customer staff orders error:", error);
+        Alert.alert("Connection Error", "Could not connect to the server.");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!isSilent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
       fetchOrders();
-    }, []),
+      const interval = setInterval(() => {
+        fetchOrders(search, true);
+      }, 4000);
+
+      return () => clearInterval(interval);
+    }, [search]),
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchOrders();
+    fetchOrders(search);
   };
 
   const updateStatus = async (orderId, status, cancelReason = "") => {
@@ -186,7 +200,7 @@ export default function CustomerStaffDashboard() {
           },
           body: JSON.stringify({
             status,
-            staffId,
+            staffId: staff?.id,
             cancelReason,
           }),
         },
@@ -197,14 +211,14 @@ export default function CustomerStaffDashboard() {
       if (response.ok) {
         const messages = {
           accepted: "Order accepted.",
-          preparing: "Order set to Preparing.",
-          ready: "Order marked as Ready.",
-          completed: "Order completed.",
-          cancelled: "Order cancelled.",
+          preparing: "Order status set to Preparing.",
+          ready: "Order marked as Ready for Delivery.",
+          completed: "Order completed successfully.",
+          cancelled: `Order rejected: ${cancelReason}`,
         };
 
         Alert.alert("Success", messages[status] || "Order updated.");
-        fetchOrders();
+        fetchOrders(search);
       } else {
         Alert.alert("Error", data.message || "Could not update order.");
       }
@@ -215,7 +229,7 @@ export default function CustomerStaffDashboard() {
   };
 
   const handleAccept = (orderId) => {
-    Alert.alert("Accept Order", "Do you want to accept this order?", [
+    Alert.alert("Accept Order", "Do you want to accept this incoming order?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Accept",
@@ -225,38 +239,52 @@ export default function CustomerStaffDashboard() {
   };
 
   const handlePreparing = (orderId) => {
-    Alert.alert("Set to Preparing", "Mark this order as Preparing?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Yes",
-        onPress: () => updateStatus(orderId, "preparing"),
-      },
-    ]);
+    updateStatus(orderId, "preparing");
   };
 
   const handleReady = (orderId) => {
-    Alert.alert("Mark as Ready", "Is this order ready for delivery/pickup?", [
+    updateStatus(orderId, "ready");
+  };
+
+  const handleComplete = (orderId) => {
+    Alert.alert("Complete Order", "Mark this order as fulfilled and completed?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Mark as Ready",
-        onPress: () => updateStatus(orderId, "ready"),
+        text: "Complete",
+        onPress: () => updateStatus(orderId, "completed"),
       },
     ]);
   };
 
   const openCancelModal = (orderId) => {
     setCancelOrderId(orderId);
-    setSelectedReason(CANCEL_REASONS[0]);
+    setSelectedReason(REJECTION_REASONS[0]);
+    setCustomReasonText("");
     setCancelVisible(true);
   };
 
   const confirmCancel = async () => {
     if (!cancelOrderId) return;
 
+    const finalReason =
+      selectedReason === "Other / Custom reason"
+        ? customReasonText.trim() || "No specific reason provided"
+        : selectedReason;
+
     setCancelVisible(false);
-    await updateStatus(cancelOrderId, "cancelled", selectedReason);
+    await updateStatus(cancelOrderId, "cancelled", finalReason);
     setCancelOrderId(null);
   };
+
+  // Filter orders by tab
+  const filteredOrders = orders.filter((order) => {
+    if (selectedStatusTab === "all") return true;
+    return order.status === selectedStatusTab;
+  });
+
+  const pendingCount = orders.filter((o) => o.status === "pending").length;
+  const preparingCount = orders.filter((o) => o.status === "preparing").length;
+  const readyCount = orders.filter((o) => o.status === "ready").length;
 
   const getActionButton = (order) => {
     if (order.status === "pending") {
@@ -266,14 +294,14 @@ export default function CustomerStaffDashboard() {
             style={styles.rejectButton}
             onPress={() => openCancelModal(order._id)}
           >
-            <Text style={styles.rejectButtonText}>✕</Text>
+            <Text style={styles.rejectButtonText}>Reject Order</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.acceptButton}
             onPress={() => handleAccept(order._id)}
           >
-            <Text style={styles.acceptButtonText}>Accept</Text>
+            <Text style={styles.acceptButtonText}>✓ Accept Order</Text>
           </TouchableOpacity>
         </View>
       );
@@ -296,10 +324,23 @@ export default function CustomerStaffDashboard() {
       return (
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={styles.readyButton}
             onPress={() => handleReady(order._id)}
           >
-            <Text style={styles.secondaryButtonText}>Mark as Ready</Text>
+            <Text style={styles.readyButtonText}>Mark as Ready</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (order.status === "ready") {
+      return (
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={() => handleComplete(order._id)}
+          >
+            <Text style={styles.completeButtonText}>✓ Complete Order</Text>
           </TouchableOpacity>
         </View>
       );
@@ -312,7 +353,7 @@ export default function CustomerStaffDashboard() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E7D32" />
+          <ActivityIndicator size="large" color="#15803D" />
           <Text style={styles.loadingText}>Loading incoming orders...</Text>
         </View>
       </SafeAreaView>
@@ -322,18 +363,42 @@ export default function CustomerStaffDashboard() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* Header with Visual Banner */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Incoming Orders</Text>
-          <Text style={styles.headerSubtitle}>
-            Accept and prepare customer orders
-          </Text>
+          <View style={styles.bannerContainer}>
+            <Image
+              source={staffBannerImage}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            <View style={styles.bannerOverlay} />
+            <View style={styles.bannerContent}>
+              <View style={styles.bannerTitleRow}>
+                <View style={styles.staffBadge}>
+                  <Text style={styles.staffBadgeText}>STAFF PORTAL</Text>
+                </View>
+                <Text style={styles.welcomeText}>
+                  Hello, {staff?.name || "Staff Member"} 👋
+                </Text>
+                <Text style={styles.storeSubtext}>
+                  {orders.length} incoming orders total
+                </Text>
+              </View>
 
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Search Box */}
           <View style={styles.searchContainer}>
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for Order ID or Customer"
-              placeholderTextColor="#9CA3AF"
+              placeholder="Search by Order ID or Customer Name"
+              placeholderTextColor="#94A3B8"
               value={search}
               onChangeText={(text) => {
                 setSearch(text);
@@ -341,8 +406,150 @@ export default function CustomerStaffDashboard() {
               }}
             />
           </View>
+
+          {/* Status Filter Tabs */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterTabsScroll}
+            contentContainerStyle={styles.filterTabsContainer}
+          >
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                selectedStatusTab === "all" && styles.filterTabActive,
+              ]}
+              onPress={() => setSelectedStatusTab("all")}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedStatusTab === "all" && styles.filterTabTextActive,
+                ]}
+              >
+                All Incoming
+              </Text>
+              <View
+                style={[
+                  styles.filterBadge,
+                  selectedStatusTab === "all" && styles.filterBadgeActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterBadgeText,
+                    selectedStatusTab === "all" &&
+                      styles.filterBadgeTextActive,
+                  ]}
+                >
+                  {orders.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                selectedStatusTab === "pending" && styles.filterTabActive,
+              ]}
+              onPress={() => setSelectedStatusTab("pending")}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedStatusTab === "pending" && styles.filterTabTextActive,
+                ]}
+              >
+                New Orders
+              </Text>
+              <View
+                style={[
+                  styles.filterBadge,
+                  selectedStatusTab === "pending" && styles.filterBadgeActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterBadgeText,
+                    selectedStatusTab === "pending" &&
+                      styles.filterBadgeTextActive,
+                  ]}
+                >
+                  {pendingCount}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                selectedStatusTab === "preparing" && styles.filterTabActive,
+              ]}
+              onPress={() => setSelectedStatusTab("preparing")}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedStatusTab === "preparing" &&
+                    styles.filterTabTextActive,
+                ]}
+              >
+                Preparing
+              </Text>
+              <View
+                style={[
+                  styles.filterBadge,
+                  selectedStatusTab === "preparing" && styles.filterBadgeActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterBadgeText,
+                    selectedStatusTab === "preparing" &&
+                      styles.filterBadgeTextActive,
+                  ]}
+                >
+                  {preparingCount}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                selectedStatusTab === "ready" && styles.filterTabActive,
+              ]}
+              onPress={() => setSelectedStatusTab("ready")}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedStatusTab === "ready" && styles.filterTabTextActive,
+                ]}
+              >
+                Ready
+              </Text>
+              <View
+                style={[
+                  styles.filterBadge,
+                  selectedStatusTab === "ready" && styles.filterBadgeActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterBadgeText,
+                    selectedStatusTab === "ready" &&
+                      styles.filterBadgeTextActive,
+                  ]}
+                >
+                  {readyCount}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
+        {/* Incoming Orders List */}
         <ScrollView
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -350,30 +557,39 @@ export default function CustomerStaffDashboard() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={["#2E7D32"]}
+              colors={["#15803D"]}
             />
           }
         >
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🛒</Text>
+              <Text style={styles.emptyIcon}>🛍️</Text>
               <Text style={styles.emptyTitle}>No Incoming Orders</Text>
               <Text style={styles.emptyText}>
-                New customer orders will appear here for you to accept and
-                prepare.
+                {selectedStatusTab === "pending"
+                  ? "No new pending orders at the moment."
+                  : "All customer orders in this view will appear here live."}
               </Text>
             </View>
           ) : (
-            orders.map((order) => {
+            filteredOrders.map((order) => {
               const firstItem = order.items?.[0];
               const imageUrl = getImageUrl(firstItem?.productImage);
               const itemCount = order.items?.length || 0;
+              const isPending = order.status === "pending";
+
+              const itemsSummaryString = (order.items || [])
+                .map((it) => `${it.productName || "Product"} (${it.quantity}x)`)
+                .join(", ");
 
               return (
                 <TouchableOpacity
                   key={order._id}
-                  style={styles.card}
-                  activeOpacity={0.85}
+                  style={[
+                    styles.card,
+                    isPending && styles.cardPendingHighlight,
+                  ]}
+                  activeOpacity={0.88}
                   onPress={() =>
                     router.push({
                       pathname: "/customer-staff-order-details",
@@ -381,7 +597,31 @@ export default function CustomerStaffDashboard() {
                     })
                   }
                 >
-                  <View style={styles.cardTop}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.orderNumberRow}>
+                      <Text style={styles.orderNumber}>
+                        Order #{order.orderNumber}
+                      </Text>
+                      <Text style={styles.timeText}>
+                        • {formatDate(order.createdAt)}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[styles.statusBadge, getBadgeStyle(order.status)]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          getBadgeTextStyle(order.status),
+                        ]}
+                      >
+                        {getStatusLabel(order.status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardBody}>
                     <View style={styles.productThumb}>
                       {imageUrl ? (
                         <Image
@@ -394,39 +634,39 @@ export default function CustomerStaffDashboard() {
                       )}
                     </View>
 
-                    <View style={styles.cardInfo}>
-                      <Text style={styles.orderId}>
-                        Order ID: #{order.orderNumber}
-                      </Text>
+                    <View style={styles.customerInfo}>
                       <Text style={styles.customerName}>
                         {order.customerName}
                       </Text>
-                      <Text style={styles.dateText}>
-                        {formatDate(order.createdAt)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.cardRight}>
-                      <View
-                        style={[styles.statusBadge, getBadgeStyle(order.status)]}
-                      >
-                        <Text
-                          style={[
-                            styles.statusText,
-                            getBadgeTextStyle(order.status),
-                          ]}
-                        >
-                          {getStatusLabel(order.status)}
+                      {order.customerPhone ? (
+                        <Text style={styles.customerPhone}>
+                          📞 {order.customerPhone}
                         </Text>
-                      </View>
+                      ) : null}
+                      {order.customerAddress ? (
+                        <Text
+                          style={styles.customerAddress}
+                          numberOfLines={1}
+                        >
+                          📍 {order.customerAddress}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
 
-                  <View style={styles.cardMeta}>
-                    <Text style={styles.metaText}>
-                      {itemCount} {itemCount === 1 ? "Item" : "Items"}
+                  {/* Items Summary */}
+                  <View style={styles.itemsSummary}>
+                    <Text style={styles.itemsSummaryText} numberOfLines={2}>
+                      <Text style={{ fontWeight: "700" }}>Items: </Text>
+                      {itemsSummaryString || "No item details available"}
                     </Text>
-                    <Text style={styles.totalText}>
+                  </View>
+
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.itemsCount}>
+                      {itemCount} {itemCount === 1 ? "item" : "items"} total
+                    </Text>
+                    <Text style={styles.totalAmount}>
                       Rs. {Number(order.totalAmount).toFixed(2)}
                     </Text>
                   </View>
@@ -438,6 +678,7 @@ export default function CustomerStaffDashboard() {
           )}
         </ScrollView>
 
+        {/* Bottom Navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem} onPress={handleHome}>
             <Text style={styles.navIcon}>🏠</Text>
@@ -454,109 +695,95 @@ export default function CustomerStaffDashboard() {
             <Text style={styles.navLabel}>Orders</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/customer-staff-messages")}
+          >
+            <Text style={styles.navIcon}>💬</Text>
+            <Text style={styles.navLabel}>Messages</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
             <Text style={styles.navIcon}>👤</Text>
             <Text style={styles.navLabel}>Profile</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Rejection Reason Modal */}
         <Modal
           visible={cancelVisible}
           transparent
           animationType="slide"
           onRequestClose={() => setCancelVisible(false)}
         >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.4)",
-              justifyContent: "flex-end",
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                padding: 20,
-                paddingBottom: 32,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: "#111827",
-                  marginBottom: 16,
-                }}
-              >
-                Cancel Order
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalTitle}>Reject Order</Text>
+                <TouchableOpacity onPress={() => setCancelVisible(false)}>
+                  <Text style={{ fontSize: 18, color: "#94A3B8" }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSubtitle}>
+                Please select the primary reason for rejecting this order:
               </Text>
 
-              {CANCEL_REASONS.map((reason) => (
-                <TouchableOpacity
-                  key={reason}
-                  onPress={() => setSelectedReason(reason)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#F3F4F6",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      borderWidth: 2,
-                      borderColor: "#2E7D32",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: 12,
-                    }}
+              {REJECTION_REASONS.map((reason) => {
+                const isSelected = selectedReason === reason;
+                return (
+                  <TouchableOpacity
+                    key={reason}
+                    onPress={() => setSelectedReason(reason)}
+                    style={[
+                      styles.reasonOption,
+                      isSelected && styles.reasonOptionSelected,
+                    ]}
+                    activeOpacity={0.8}
                   >
-                    {selectedReason === reason ? (
-                      <View
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 5,
-                          backgroundColor: "#2E7D32",
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                  <Text style={{ fontSize: 14, color: "#374151" }}>
-                    {reason}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        isSelected && styles.radioOuterSelected,
+                      ]}
+                    >
+                      {isSelected ? <View style={styles.radioInner} /> : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.reasonText,
+                        isSelected && styles.reasonTextSelected,
+                      ]}
+                    >
+                      {reason}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {selectedReason === "Other / Custom reason" ? (
+                <TextInput
+                  style={styles.customReasonInput}
+                  placeholder="Enter specific rejection reason..."
+                  placeholderTextColor="#94A3B8"
+                  value={customReasonText}
+                  onChangeText={setCustomReasonText}
+                />
+              ) : null}
 
               <TouchableOpacity
                 onPress={confirmCancel}
-                style={{
-                  marginTop: 20,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: "#DC2626",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                style={styles.confirmRejectButton}
+                activeOpacity={0.85}
               >
-                <Text
-                  style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 15 }}
-                >
-                  Confirm Cancel
-                </Text>
+                <Text style={styles.confirmRejectText}>Confirm Rejection</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setCancelVisible(false)}
-                style={{ marginTop: 12, alignItems: "center", padding: 8 }}
+                style={styles.closeModalButton}
               >
-                <Text style={{ color: "#6B7280", fontSize: 14 }}>Close</Text>
+                <Text style={styles.closeModalText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -565,3 +792,4 @@ export default function CustomerStaffDashboard() {
     </SafeAreaView>
   );
 }
+

@@ -20,6 +20,15 @@ import { router, useFocusEffect } from "expo-router";
 import { API_URL } from "../../constants/api";
 import styles from "./CustomerStaffInventory.styles";
 
+const CATEGORIES = [
+  { id: "all", label: "All Items", icon: "🛍️" },
+  { id: "Vegetables", label: "Vegetables", icon: "🥬" },
+  { id: "Fruits", label: "Fruits", icon: "🍎" },
+  { id: "Grocery", label: "Grocery", icon: "🛒" },
+  { id: "Grains", label: "Grains", icon: "🌾" },
+  { id: "Spices", label: "Spices", icon: "🌶️" },
+];
+
 const emptyForm = {
   name: "",
   category: "Vegetables",
@@ -38,6 +47,8 @@ export default function CustomerStaffInventory() {
   const [form, setForm] = useState(emptyForm);
   const [staffId, setStaffId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const getImageUrl = (image) => {
     if (!image) return null;
@@ -46,6 +57,23 @@ export default function CustomerStaffInventory() {
       return image;
     }
     return `${API_URL}${image.startsWith("/") ? image : `/${image}`}`;
+  };
+
+  const getCategoryIcon = (category) => {
+    switch (category) {
+      case "Vegetables":
+        return "🥬";
+      case "Fruits":
+        return "🍎";
+      case "Grocery":
+        return "🛒";
+      case "Grains":
+        return "🌾";
+      case "Spices":
+        return "🌶️";
+      default:
+        return "🥬";
+    }
   };
 
   const fetchProducts = async () => {
@@ -138,7 +166,7 @@ export default function CustomerStaffInventory() {
         setModalVisible(false);
         Alert.alert(
           "Success",
-          editingProduct ? "Product updated." : "Product added.",
+          editingProduct ? "Product updated." : "Product added to store.",
         );
         fetchProducts();
       } else {
@@ -152,12 +180,27 @@ export default function CustomerStaffInventory() {
     }
   };
 
+  // Filter products by category and search string
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = search
+      ? product.name?.toLowerCase().includes(search.toLowerCase()) ||
+        product.category?.toLowerCase().includes(search.toLowerCase())
+      : true;
+
+    const matchesCategory =
+      selectedCategory === "all"
+        ? true
+        : product.category?.toLowerCase() === selectedCategory.toLowerCase();
+
+    return matchesSearch && matchesCategory;
+  });
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Loading inventory...</Text>
+          <ActivityIndicator size="large" color="#15803D" />
+          <Text style={styles.loadingText}>Loading inventory items...</Text>
         </View>
       </SafeAreaView>
     );
@@ -166,13 +209,66 @@ export default function CustomerStaffInventory() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* Header with Search and Add Item Button */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Inventory</Text>
-          <TouchableOpacity style={styles.addButton} onPress={openAdd}>
-            <Text style={styles.addButtonText}>+ Add Item</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <View>
+              <Text style={styles.headerTitle}>Store Inventory</Text>
+              <Text style={styles.headerSubtitle}>
+                {filteredProducts.length} items available
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.addButton} onPress={openAdd}>
+              <Text style={styles.addButtonText}>+ Add Product</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Box */}
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by product name..."
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={setSearch}
+            />
+          </View>
+
+          {/* Category Filter Pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+            contentContainerStyle={styles.categoryContainer}
+          >
+            {CATEGORIES.map((cat) => {
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryPill,
+                    isSelected && styles.categoryPillActive,
+                  ]}
+                  onPress={() => setSelectedCategory(cat.id)}
+                >
+                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      isSelected && styles.categoryTextActive,
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
+        {/* Product Grid List */}
         <ScrollView
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -183,29 +279,32 @@ export default function CustomerStaffInventory() {
                 setRefreshing(true);
                 fetchProducts();
               }}
-              colors={["#2E7D32"]}
+              colors={["#15803D"]}
             />
           }
         >
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📦</Text>
-              <Text style={styles.emptyTitle}>No Products Yet</Text>
+              <Text style={styles.emptyTitle}>No Products Found</Text>
               <Text style={styles.emptyText}>
-                Add grocery items so customers can place orders.
+                {selectedCategory !== "all"
+                  ? `No items found under "${selectedCategory}".`
+                  : "Add grocery items so customers can place orders."}
               </Text>
             </View>
           ) : (
-            products.map((product) => {
+            filteredProducts.map((product) => {
               const imageUrl = getImageUrl(product.image);
               const inStock = product.inStock && product.stockQuantity > 0;
+              const catIcon = getCategoryIcon(product.category);
 
               return (
                 <TouchableOpacity
                   key={product._id}
                   style={styles.productCard}
                   onPress={() => openEdit(product)}
-                  activeOpacity={0.85}
+                  activeOpacity={0.88}
                 >
                   <View style={styles.productImageBox}>
                     {imageUrl ? (
@@ -215,14 +314,23 @@ export default function CustomerStaffInventory() {
                         resizeMode="cover"
                       />
                     ) : (
-                      <Text style={styles.productImageIcon}>🥬</Text>
+                      <Text style={styles.productImageIcon}>{catIcon}</Text>
                     )}
+                    <View style={styles.categoryBadgeTop}>
+                      <Text style={styles.categoryBadgeTopText}>
+                        {product.category || "Grocery"}
+                      </Text>
+                    </View>
                   </View>
 
                   <View style={styles.productBody}>
                     <Text style={styles.productName} numberOfLines={1}>
                       {product.name}
                     </Text>
+                    <Text style={styles.productMeta}>
+                      Unit: {product.unit || "kg"}
+                    </Text>
+
                     <Text style={styles.productPrice}>
                       Rs. {Number(product.price).toFixed(2)}
                     </Text>
@@ -240,10 +348,10 @@ export default function CustomerStaffInventory() {
                             !inStock && styles.stockTextOut,
                           ]}
                         >
-                          {inStock ? "In Stock" : "Out of Stock"}
+                          {inStock ? `${product.stockQuantity} in stock` : "Out of Stock"}
                         </Text>
                       </View>
-                      <Text style={styles.editLink}>Edit</Text>
+                      <Text style={styles.editLink}>Edit ✏️</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -252,6 +360,7 @@ export default function CustomerStaffInventory() {
           )}
         </ScrollView>
 
+        {/* 5-Tab Bottom Navigation Bar */}
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={styles.navItem}
@@ -276,6 +385,14 @@ export default function CustomerStaffInventory() {
 
           <TouchableOpacity
             style={styles.navItem}
+            onPress={() => router.push("/customer-staff-messages")}
+          >
+            <Text style={styles.navIcon}>💬</Text>
+            <Text style={styles.navLabel}>Messages</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
             onPress={() => router.push("/customer-staff-profile")}
           >
             <Text style={styles.navIcon}>👤</Text>
@@ -283,6 +400,7 @@ export default function CustomerStaffInventory() {
           </TouchableOpacity>
         </View>
 
+        {/* Add/Edit Product Modal */}
         <Modal
           visible={modalVisible}
           transparent
@@ -296,7 +414,7 @@ export default function CustomerStaffInventory() {
             >
               <View style={styles.modalCard}>
                 <Text style={styles.modalTitle}>
-                  {editingProduct ? "Edit Item Details" : "Add Item"}
+                  {editingProduct ? "Edit Product Details" : "Add New Product"}
                 </Text>
 
                 <Text style={styles.inputLabel}>Product Name</Text>
@@ -304,27 +422,46 @@ export default function CustomerStaffInventory() {
                   style={styles.input}
                   value={form.name}
                   onChangeText={(text) => setForm({ ...form, name: text })}
-                  placeholder="e.g. Tomato 1kg"
-                  placeholderTextColor="#9CA3AF"
+                  placeholder="e.g. Fresh Tomatoes"
+                  placeholderTextColor="#94A3B8"
                 />
 
-                <Text style={styles.inputLabel}>Category</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.category}
-                  onChangeText={(text) => setForm({ ...form, category: text })}
-                  placeholder="Vegetables"
-                  placeholderTextColor="#9CA3AF"
-                />
+                <Text style={styles.inputLabel}>Select Category</Text>
+                <View style={styles.categorySelectRow}>
+                  {["Vegetables", "Fruits", "Grocery", "Grains", "Spices"].map(
+                    (cat) => {
+                      const isSelected = form.category === cat;
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[
+                            styles.categoryChip,
+                            isSelected && styles.categoryChipSelected,
+                          ]}
+                          onPress={() => setForm({ ...form, category: cat })}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryChipText,
+                              isSelected && styles.categoryChipTextSelected,
+                            ]}
+                          >
+                            {cat}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    },
+                  )}
+                </View>
 
-                <Text style={styles.inputLabel}>Price (Rs.)</Text>
+                <Text style={styles.inputLabel}>Price per Unit (Rs.)</Text>
                 <TextInput
                   style={styles.input}
                   value={form.price}
                   onChangeText={(text) => setForm({ ...form, price: text })}
                   keyboardType="numeric"
                   placeholder="350"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#94A3B8"
                 />
 
                 <Text style={styles.inputLabel}>Stock Quantity</Text>
@@ -336,16 +473,16 @@ export default function CustomerStaffInventory() {
                   }
                   keyboardType="numeric"
                   placeholder="40"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#94A3B8"
                 />
 
-                <Text style={styles.inputLabel}>Unit</Text>
+                <Text style={styles.inputLabel}>Measurement Unit</Text>
                 <TextInput
                   style={styles.input}
                   value={form.unit}
                   onChangeText={(text) => setForm({ ...form, unit: text })}
-                  placeholder="kg"
-                  placeholderTextColor="#9CA3AF"
+                  placeholder="kg / pack / bottle"
+                  placeholderTextColor="#94A3B8"
                 />
 
                 <TouchableOpacity
@@ -355,10 +492,10 @@ export default function CustomerStaffInventory() {
                 >
                   <Text style={styles.saveButtonText}>
                     {saving
-                      ? "Saving..."
+                      ? "Saving Product..."
                       : editingProduct
                         ? "Save Changes"
-                        : "Add Item"}
+                        : "Add to Store Inventory"}
                   </Text>
                 </TouchableOpacity>
 
@@ -366,7 +503,7 @@ export default function CustomerStaffInventory() {
                   onPress={() => setModalVisible(false)}
                   style={{ marginTop: 12, alignItems: "center", padding: 8 }}
                 >
-                  <Text style={{ color: "#6B7280" }}>Close</Text>
+                  <Text style={{ color: "#64748B", fontWeight: "600" }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -376,3 +513,4 @@ export default function CustomerStaffInventory() {
     </SafeAreaView>
   );
 }
+

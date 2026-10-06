@@ -21,10 +21,12 @@ import styles from "./CustomerStaffOrderDetails.styles";
 const STEPS = ["Ordered", "Accepted", "Preparing", "Ready"];
 
 const CANCEL_REASONS = [
-  "Out of stock",
-  "Delivery person unavailable",
-  "Customer requested cancellation",
   "Unable to fulfill order",
+  "Store temporarily closed",
+  "Item quality/damage issue",
+  "Out of stock",
+  "Delivery address unreachable",
+  "Other / Custom reason",
 ];
 
 const statusToStepIndex = (status) => {

@@ -137,4 +137,39 @@ export default StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+
+  // Bottom Navigation
+  bottomNav: {
+    height: 70,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingBottom: 4,
+  },
+
+  navItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 64,
+  },
+
+  navIcon: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+
+  navLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+
+  navLabelActive: {
+    fontSize: 11,
+    color: PRIMARY,
+    fontWeight: "800",
+  },
 });

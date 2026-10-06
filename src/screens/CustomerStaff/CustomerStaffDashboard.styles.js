@@ -1,8 +1,9 @@
 import { StyleSheet } from "react-native";
 
-const PRIMARY = "#2E7D32";
-const PRIMARY_SOFT = "#E8F5E9";
-const BG = "#F5F7F5";
+const PRIMARY = "#15803D"; // Deep Emerald Green
+const PRIMARY_SOFT = "#F0FDF4";
+const PRIMARY_BORDER = "#DCFCE7";
+const BG = "#F8FAFC";
 
 export default StyleSheet.create({
   safeArea: {
@@ -25,52 +26,184 @@ export default StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 14,
-    color: "#6B7280",
+    color: "#64748B",
+    fontWeight: "500",
   },
 
+  // Hero Section & Header
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E2E8F0",
+    paddingBottom: 14,
   },
 
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+  bannerContainer: {
+    height: 130,
+    width: "100%",
+    position: "relative",
+    justifyContent: "flex-end",
   },
 
-  headerSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#6B7280",
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+  },
+
+  bannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+  },
+
+  bannerContent: {
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+
+  bannerTitleRow: {
+    flex: 1,
+  },
+
+  staffBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#15803D",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+
+  staffBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  welcomeText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  storeSubtext: {
+    fontSize: 12,
+    color: "#E2E8F0",
+    marginTop: 2,
+  },
+
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(220, 252, 231, 0.95)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#16A34A",
+    marginRight: 6,
+  },
+
+  liveText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#15803D",
   },
 
   searchContainer: {
-    marginTop: 14,
+    marginTop: 12,
+    marginHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     paddingHorizontal: 14,
-    height: 46,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
 
   searchIcon: {
-    fontSize: 16,
+    fontSize: 15,
     marginRight: 8,
   },
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: "#111827",
+    fontSize: 13,
+    color: "#0F172A",
     paddingVertical: 0,
   },
 
+  // Status Filter Tabs
+  filterTabsScroll: {
+    marginTop: 10,
+  },
+
+  filterTabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+
+  filterTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  filterTabActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  filterTabText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+
+  filterTabTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
+  filterBadge: {
+    marginLeft: 6,
+    backgroundColor: "#E2E8F0",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+
+  filterBadgeActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  },
+
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#475569",
+  },
+
+  filterBadgeTextActive: {
+    color: "#FFFFFF",
+  },
+
+  // Order List
   list: {
     padding: 16,
     paddingBottom: 110,
@@ -80,51 +213,88 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
-    paddingTop: 80,
+    paddingVertical: 60,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
 
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 14,
+    marginBottom: 12,
   },
 
   emptyTitle: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: "#0F172A",
     marginBottom: 6,
   },
 
   emptyText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#64748B",
     textAlign: "center",
     lineHeight: 20,
   },
 
+  // Order Card
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
 
-  cardTop: {
+  cardPendingHighlight: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#EAB308",
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+
+  orderNumberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  orderNumber: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+
+  timeText: {
+    fontSize: 11,
+    color: "#64748B",
+  },
+
+  cardBody: {
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "flex-start",
   },
 
   productThumb: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     backgroundColor: PRIMARY_SOFT,
     alignItems: "center",
     justifyContent: "center",
@@ -141,130 +311,84 @@ export default StyleSheet.create({
     fontSize: 24,
   },
 
-  cardInfo: {
+  customerInfo: {
     flex: 1,
-    paddingRight: 8,
-  },
-
-  orderId: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
   },
 
   customerName: {
-    marginTop: 3,
-    fontSize: 14,
-    color: "#374151",
-  },
-
-  dateText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-
-  cardRight: {
-    alignItems: "flex-end",
-    gap: 8,
-  },
-
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: PRIMARY_SOFT,
-  },
-
-  statusText: {
-    fontSize: 11,
+    fontSize: 15,
     fontWeight: "700",
-    color: PRIMARY,
+    color: "#0F172A",
   },
 
-  pendingBadge: {
-    backgroundColor: PRIMARY_SOFT,
+  customerPhone: {
+    fontSize: 12,
+    color: "#15803D",
+    marginTop: 2,
+    fontWeight: "600",
   },
 
-  acceptedBadge: {
-    backgroundColor: "#E3F2FD",
+  customerAddress: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
   },
 
-  preparingBadge: {
-    backgroundColor: "#FFF8E1",
+  itemsSummary: {
+    marginTop: 8,
+    backgroundColor: "#F8FAFC",
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
 
-  readyBadge: {
-    backgroundColor: "#E8F5E9",
+  itemsSummaryText: {
+    fontSize: 12,
+    color: "#334155",
+    lineHeight: 18,
   },
 
-  completedBadge: {
-    backgroundColor: "#E0E7FF",
-  },
-
-  cancelledBadge: {
-    backgroundColor: "#FEE2E2",
-  },
-
-  pendingText: {
-    color: PRIMARY,
-  },
-
-  acceptedText: {
-    color: "#1565C0",
-  },
-
-  preparingText: {
-    color: "#F57F17",
-  },
-
-  readyText: {
-    color: "#2E7D32",
-  },
-
-  completedText: {
-    color: "#3730A3",
-  },
-
-  cancelledText: {
-    color: "#B91C1C",
-  },
-
-  cardMeta: {
-    marginTop: 12,
-    paddingTop: 12,
+  cardFooter: {
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#F1F5F9",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
 
-  metaText: {
-    fontSize: 13,
-    color: "#6B7280",
+  itemsCount: {
+    fontSize: 12,
+    color: "#64748B",
   },
 
-  totalText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#15803D",
   },
 
+  // Action Buttons
   actionRow: {
     marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
 
   acceptButton: {
     flex: 1,
     height: 42,
     borderRadius: 10,
-    backgroundColor: PRIMARY,
+    backgroundColor: "#15803D",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#15803D",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
   acceptButtonText: {
@@ -274,17 +398,19 @@ export default StyleSheet.create({
   },
 
   rejectButton: {
-    width: 42,
     height: 42,
+    paddingHorizontal: 16,
     borderRadius: 10,
     backgroundColor: "#FEE2E2",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
   },
 
   rejectButtonText: {
-    fontSize: 16,
-    color: "#DC2626",
+    fontSize: 13,
+    color: "#B91C1C",
     fontWeight: "700",
   },
 
@@ -292,7 +418,7 @@ export default StyleSheet.create({
     flex: 1,
     height: 42,
     borderRadius: 10,
-    backgroundColor: PRIMARY,
+    backgroundColor: "#0284C7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -303,19 +429,247 @@ export default StyleSheet.create({
     fontWeight: "700",
   },
 
+  readyButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "#D97706",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  readyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  completeButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "#15803D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  completeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // Status Badges
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  pendingBadge: {
+    backgroundColor: "#FEF9C3",
+    borderWidth: 1,
+    borderColor: "#FDE047",
+  },
+
+  pendingText: {
+    color: "#854D0E",
+  },
+
+  acceptedBadge: {
+    backgroundColor: "#E0F2FE",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+
+  acceptedText: {
+    color: "#0369A1",
+  },
+
+  preparingBadge: {
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+
+  preparingText: {
+    color: "#B45309",
+  },
+
+  readyBadge: {
+    backgroundColor: "#DCFCE7",
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+  },
+
+  readyText: {
+    color: "#15803D",
+  },
+
+  completedBadge: {
+    backgroundColor: "#F1F5F9",
+  },
+
+  completedText: {
+    color: "#475569",
+  },
+
+  cancelledBadge: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+
+  cancelledText: {
+    color: "#B91C1C",
+  },
+
+  // Rejection Reason Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    justifyContent: "flex-end",
+  },
+
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+  },
+
+  modalHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 16,
+  },
+
+  reasonOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 8,
+    backgroundColor: "#FFFFFF",
+  },
+
+  reasonOptionSelected: {
+    borderColor: "#DC2626",
+    backgroundColor: "#FEF2F2",
+  },
+
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#94A3B8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  radioOuterSelected: {
+    borderColor: "#DC2626",
+  },
+
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#DC2626",
+  },
+
+  reasonText: {
+    fontSize: 14,
+    color: "#334155",
+    fontWeight: "500",
+  },
+
+  reasonTextSelected: {
+    color: "#991B1B",
+    fontWeight: "700",
+  },
+
+  customReasonInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 13,
+    color: "#0F172A",
+    marginTop: 6,
+    marginBottom: 16,
+  },
+
+  confirmRejectButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  confirmRejectText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  closeModalButton: {
+    marginTop: 12,
+    alignItems: "center",
+    padding: 8,
+  },
+
+  closeModalText: {
+    color: "#64748B",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Bottom Navigation
   bottomNav: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 72,
+    height: 70,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#E2E8F0",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
 
   navItem: {
@@ -331,12 +685,14 @@ export default StyleSheet.create({
 
   navLabel: {
     fontSize: 11,
-    color: "#9CA3AF",
+    color: "#94A3B8",
+    fontWeight: "500",
   },
 
   navLabelActive: {
     fontSize: 11,
     color: PRIMARY,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 });
+
