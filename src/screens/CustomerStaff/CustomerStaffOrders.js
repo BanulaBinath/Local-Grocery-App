@@ -36,6 +36,11 @@ export default function CustomerStaffOrders() {
   const [search, setSearch] = useState("");
   const [staff, setStaff] = useState(null);
 
+  // History modal state
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState("all");
+  const [historySearch, setHistorySearch] = useState("");
+
   // Rejection modal state
   const [cancelVisible, setCancelVisible] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState(null);
@@ -232,6 +237,31 @@ export default function CustomerStaffOrders() {
     return orderNum.includes(term) || custName.includes(term);
   });
 
+  // History Orders (Completed & Cancelled orders)
+  const historyOrders = orders.filter((order) => {
+    const isFinished = order.status === "completed" || order.status === "cancelled";
+    if (!isFinished) return false;
+
+    if (historyFilter !== "all" && order.status !== historyFilter) {
+      return false;
+    }
+
+    if (historySearch.trim()) {
+      const term = historySearch.toLowerCase();
+      const orderNum = String(order.orderNumber || "");
+      const custName = (order.customerName || "").toLowerCase();
+      return orderNum.includes(term) || custName.includes(term);
+    }
+
+    return true;
+  });
+
+  const completedCount = orders.filter((o) => o.status === "completed").length;
+  const cancelledCount = orders.filter((o) => o.status === "cancelled").length;
+  const totalCompletedRevenue = orders
+    .filter((o) => o.status === "completed")
+    .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -248,10 +278,20 @@ export default function CustomerStaffOrders() {
       <View style={styles.container}>
         {/* Header with Search and Status Filters */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Order Management</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredOrders.length} customer orders recorded
-          </Text>
+          <View style={styles.headerTopRow}>
+            <View>
+              <Text style={styles.headerTitle}>Order Management</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.historyIconButton}
+              onPress={() => setHistoryVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.historyIcon}>📜</Text>
+              <Text style={styles.historyBtnText}>History</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Search Box */}
           <View style={styles.searchContainer}>
@@ -550,6 +590,191 @@ export default function CustomerStaffOrders() {
               >
                 <Text style={styles.closeModalText}>Cancel</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Order History Modal */}
+        <Modal
+          visible={historyVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setHistoryVisible(false)}
+        >
+          <View style={styles.historyModalOverlay}>
+            <View style={styles.historyModalContent}>
+              {/* Modal Header */}
+              <View style={styles.historyModalHeader}>
+                <View style={styles.historyModalTitleRow}>
+                  <Text style={styles.historyModalTitleIcon}>📜</Text>
+                  <Text style={styles.historyModalTitle}>Order History</Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => setHistoryVisible(false)}
+                  style={styles.historyModalCloseBtn}
+                >
+                  <Text style={styles.historyModalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Stats Summary */}
+              <View style={styles.historyStatsRow}>
+                <View style={styles.historyStatBox}>
+                  <Text style={[styles.historyStatValue, styles.historyStatValueGreen]}>
+                    {completedCount}
+                  </Text>
+                  <Text style={styles.historyStatLabel}>Completed</Text>
+                </View>
+
+                <View style={styles.historyStatDivider} />
+
+                <View style={styles.historyStatBox}>
+                  <Text style={[styles.historyStatValue, styles.historyStatValueRed]}>
+                    {cancelledCount}
+                  </Text>
+                  <Text style={styles.historyStatLabel}>Rejected/Cancelled</Text>
+                </View>
+
+                <View style={styles.historyStatDivider} />
+
+                <View style={styles.historyStatBox}>
+                  <Text style={styles.historyStatValue}>
+                    Rs. {totalCompletedRevenue.toFixed(0)}
+                  </Text>
+                  <Text style={styles.historyStatLabel}>Completed Rev</Text>
+                </View>
+              </View>
+
+              {/* Search Box in History */}
+              <View style={[styles.searchContainer, { marginTop: 10, marginHorizontal: 0 }]}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search history by order # or customer..."
+                  placeholderTextColor="#94A3B8"
+                  value={historySearch}
+                  onChangeText={setHistorySearch}
+                />
+              </View>
+
+              {/* History Sub-Filter Pills */}
+              <View style={styles.historyFilterTabs}>
+                {[
+                  { key: "all", label: "All History" },
+                  { key: "completed", label: "Completed" },
+                  { key: "cancelled", label: "Cancelled" },
+                ].map((item) => {
+                  const isSelected = historyFilter === item.key;
+                  return (
+                    <TouchableOpacity
+                      key={item.key}
+                      onPress={() => setHistoryFilter(item.key)}
+                      style={[
+                        styles.historyFilterPill,
+                        isSelected && styles.historyFilterPillActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.historyFilterPillText,
+                          isSelected && styles.historyFilterPillTextActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* History Order List */}
+              <ScrollView
+                contentContainerStyle={styles.historyList}
+                showsVerticalScrollIndicator={false}
+              >
+                {historyOrders.length === 0 ? (
+                  <View style={[styles.emptyContainer, { marginTop: 20 }]}>
+                    <Text style={styles.emptyIcon}>📜</Text>
+                    <Text style={styles.emptyTitle}>No Order History</Text>
+                    <Text style={styles.emptyText}>
+                      No completed or cancelled orders match your search or filter.
+                    </Text>
+                  </View>
+                ) : (
+                  historyOrders.map((order) => {
+                    const itemsSummary = (order.items || [])
+                      .map((it) => `${it.productName || "Product"} (${it.quantity}x)`)
+                      .join(", ");
+
+                    return (
+                      <TouchableOpacity
+                        key={order._id}
+                        style={styles.historyCard}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          setHistoryVisible(false);
+                          router.push({
+                            pathname: "/customer-staff-order-details",
+                            params: { orderId: order._id },
+                          });
+                        }}
+                      >
+                        <View style={styles.historyCardHeader}>
+                          <Text style={styles.historyOrderNumber}>
+                            Order #{order.orderNumber}
+                          </Text>
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              getBadgeStyle(order.status),
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusText,
+                                getBadgeTextStyle(order.status),
+                              ]}
+                            >
+                              {getStatusLabel(order.status)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.historyCustomerName}>
+                          👤 {order.customerName} {order.customerPhone ? `• 📞 ${order.customerPhone}` : ""}
+                        </Text>
+
+                        <Text style={styles.historyDate}>
+                          🕒 {formatDate(order.createdAt)}
+                        </Text>
+
+                        <Text
+                          style={styles.historyItemsText}
+                          numberOfLines={2}
+                        >
+                          Items: {itemsSummary || "No item details"}
+                        </Text>
+
+                        {order.status === "cancelled" && order.cancelReason ? (
+                          <Text style={{ fontSize: 11, color: "#DC2626", marginBottom: 4 }}>
+                            Reason: {order.cancelReason}
+                          </Text>
+                        ) : null}
+
+                        <View style={styles.historyFooterRow}>
+                          <Text style={{ fontSize: 11, color: "#64748B" }}>
+                            {(order.items || []).length} item(s)
+                          </Text>
+                          <Text style={styles.historyAmount}>
+                            Rs. {Number(order.totalAmount).toFixed(2)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
             </View>
           </View>
         </Modal>

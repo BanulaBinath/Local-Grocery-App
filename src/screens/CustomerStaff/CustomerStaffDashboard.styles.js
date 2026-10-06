@@ -694,5 +694,245 @@ export default StyleSheet.create({
     color: PRIMARY,
     fontWeight: "800",
   },
+
+  // Header Top Row & History Button
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+
+  headerSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+
+  historyIconButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: PRIMARY_BORDER,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+
+  historyIcon: {
+    fontSize: 16,
+    marginRight: 5,
+  },
+
+  historyBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PRIMARY,
+  },
+
+  // Order History Modal Styles
+  historyModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    justifyContent: "flex-end",
+  },
+
+  historyModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+    maxHeight: "90%",
+    height: "90%",
+  },
+
+  historyModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+
+  historyModalTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  historyModalTitleIcon: {
+    fontSize: 22,
+  },
+
+  historyModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+
+  historyModalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  historyModalCloseText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+
+  historyStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  historyStatBox: {
+    alignItems: "center",
+    flex: 1,
+  },
+
+  historyStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "#CBD5E1",
+  },
+
+  historyStatValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+
+  historyStatValueGreen: {
+    color: PRIMARY,
+  },
+
+  historyStatValueRed: {
+    color: "#DC2626",
+  },
+
+  historyStatLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+
+  historyFilterTabs: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 8,
+  },
+
+  historyFilterPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  historyFilterPillActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  historyFilterPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+
+  historyFilterPillTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+
+  historyList: {
+    paddingVertical: 12,
+    paddingBottom: 24,
+  },
+
+  historyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  historyCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
+  historyOrderNumber: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+
+  historyDate: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+    marginBottom: 4,
+  },
+
+  historyCustomerName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+    marginTop: 2,
+  },
+
+  historyItemsText: {
+    fontSize: 11,
+    color: "#64748B",
+    lineHeight: 16,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+
+  historyFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    marginTop: 4,
+  },
+
+  historyAmount: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: PRIMARY,
+  },
 });
 
