@@ -18,6 +18,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   backButtonText: { fontSize: 26, color: "#1E3A8A" },
+  downloadButton: {
+    marginLeft: "auto",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 16,
+    backgroundColor: "#1E3A8A",
+  },
+  downloadButtonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 12 },
   headerTitle: { fontSize: 24, fontWeight: "700", color: "#111827" },
   headerSubtitle: { marginTop: 3, color: "#6B7280" },
   periodTabs: {

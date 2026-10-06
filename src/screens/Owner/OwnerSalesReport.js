@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -10,6 +12,8 @@ import {
 } from "react-native";
 
 import { router } from "expo-router";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 import { API_URL } from "../../constants/api";
 import styles from "./OwnerSalesReport.styles";
@@ -68,6 +72,74 @@ export default function OwnerSalesReport() {
     [sales],
   );
 
+  const handleDownloadReport = async () => {
+    if (sales.length === 0) {
+      Alert.alert("No report data", "There are no completed sales to download.");
+      return;
+    }
+
+    try {
+      const periodLabel =
+        PERIODS.find((item) => item.key === period)?.label || period;
+      const rows = [
+        ["Sales Report", periodLabel],
+        [],
+        ["Period", "Total Sales (Rs.)", "Order Count"],
+        ...sales.map((item) => [
+          item.label,
+          Number(item.totalSales) || 0,
+          Number(item.orderCount) || 0,
+        ]),
+        [],
+        ["Total", totalSales, sales.reduce((count, item) => count + (Number(item.orderCount) || 0), 0)],
+      ];
+      const csv = rows
+        .map((row) =>
+          row
+            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+            .join(","),
+        )
+        .join("\n");
+      const filename = `sales-report-${period}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+
+      if (Platform.OS === "web") {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      const file = new File(Paths.cache, filename);
+      if (!file.exists) {
+        file.create();
+      }
+      file.write(csv);
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Download ready", `The report was saved as ${filename}.`);
+        return;
+      }
+
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "text/csv",
+        dialogTitle: "Download sales report",
+        UTI: "public.comma-separated-values-text",
+      });
+    } catch (error) {
+      console.error("Download owner sales report error:", error);
+      Alert.alert(
+        "Download failed",
+        "Could not create the sales report. Please try again.",
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -91,6 +163,13 @@ export default function OwnerSalesReport() {
             <Text style={styles.headerTitle}>Sales Reports</Text>
             <Text style={styles.headerSubtitle}>Completed orders only</Text>
           </View>
+          <TouchableOpacity
+            style={styles.downloadButton}
+            onPress={handleDownloadReport}
+            disabled={loading || sales.length === 0}
+          >
+            <Text style={styles.downloadButtonText}>Download</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.periodTabs}>

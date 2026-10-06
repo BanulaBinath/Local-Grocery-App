@@ -1,5 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const Owner = require("../models/Owner");
 const Supplier = require("../models/Supplier");
@@ -10,6 +13,123 @@ const Customer = require("../models/Customer");
 const StoreSetting = require("../models/StoreSetting");
 
 const router = express.Router();
+
+const uploadDirectory = path.join(__dirname, "../uploads/owners");
+
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadDirectory,
+    filename: (req, file, callback) => {
+      const extension = path.extname(file.originalname);
+      callback(
+        null,
+        `owner-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`,
+      );
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    callback(
+      allowedTypes.includes(file.mimetype)
+        ? null
+        : new Error("Only JPG, JPEG, PNG and WEBP images are allowed."),
+      allowedTypes.includes(file.mimetype),
+    );
+  },
+});
+
+const removeOwnerImage = (imagePath) => {
+  if (!imagePath || !imagePath.startsWith("/uploads/owners/")) {
+    return;
+  }
+
+  const filePath = path.join(__dirname, "..", imagePath.replace(/^\//, ""));
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
+
+// ========================================
+// OWNER PROFILE
+// ========================================
+router.put("/profile/:ownerId", upload.single("profileImage"), async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+    const { fullName, email } = req.body;
+
+    if (!fullName?.trim() || !email?.trim()) {
+      return res.status(400).json({
+        message: "Full name and email are required.",
+      });
+    }
+
+    const owner = await Owner.findById(ownerId);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner account not found." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existingOwner = await Owner.findOne({
+      email: cleanEmail,
+      _id: { $ne: ownerId },
+    });
+
+    if (existingOwner) {
+      return res.status(400).json({
+        message: "This email is already used by another owner.",
+      });
+    }
+
+    const previousImage = owner.profileImage;
+    owner.fullName = fullName.trim();
+    owner.email = cleanEmail;
+
+    if (req.file) {
+      owner.profileImage = `/uploads/owners/${req.file.filename}`;
+      removeOwnerImage(previousImage);
+    }
+
+    await owner.save();
+
+    return res.status(200).json({
+      message: "Owner profile updated successfully.",
+      owner: {
+        id: owner._id,
+        profileImage: owner.profileImage || "",
+        email: owner.email,
+        fullName: owner.fullName,
+        role: owner.role,
+      },
+    });
+  } catch (error) {
+    console.error("Update owner profile error:", error);
+    return res.status(500).json({
+      message: "Could not update owner profile.",
+    });
+  }
+});
+
+router.delete("/profile/:ownerId", async (req, res) => {
+  try {
+    const owner = await Owner.findByIdAndDelete(req.params.ownerId);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner account not found." });
+    }
+
+    removeOwnerImage(owner.profileImage);
+    return res.status(200).json({ message: "Owner account deleted successfully." });
+  } catch (error) {
+    console.error("Delete owner profile error:", error);
+    return res.status(500).json({
+      message: "Could not delete owner account.",
+    });
+  }
+});
 
 // ========================================
 // FINANCE REPORT
