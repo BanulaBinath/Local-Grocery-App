@@ -17,6 +17,8 @@ const productRoutes = require("./routes/productRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const supplyOrderRoutes = require("./routes/supplyOrderRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const shopProductRoutes = require("./routes/shopProductRoutes");
+const customerOrderRoutes = require("./routes/customerOrderRoutes");
 
 // ========================================
 // APP
@@ -57,6 +59,10 @@ app.use("/api/staff", staffRoutes);
 app.use("/api/supply-orders", supplyOrderRoutes);
 
 app.use("/api/messages", messageRoutes);
+
+app.use("/api/shop-products", shopProductRoutes);
+
+app.use("/api/customer-orders", customerOrderRoutes);
 
 // ========================================
 // ROOT ROUTE
