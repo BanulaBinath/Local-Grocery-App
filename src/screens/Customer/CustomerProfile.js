@@ -182,7 +182,61 @@ export default function CustomerProfile() {
             <View>
               <Text style={styles.ordersTitle}>My Orders</Text>
 
-              <Text style={styles.ordersSubtitle}>View your order history</Text>
+              <Text style={styles.ordersSubtitle}>View your order history & status</Text>
+            </View>
+          </View>
+
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* My Cart */}
+        <TouchableOpacity
+          style={styles.ordersButton}
+          onPress={() => router.push("/customer-cart")}
+        >
+          <View style={styles.ordersLeft}>
+            <Text style={styles.ordersIcon}>🛒</Text>
+
+            <View>
+              <Text style={styles.ordersTitle}>My Cart</Text>
+
+              <Text style={styles.ordersSubtitle}>View selected items & checkout</Text>
+            </View>
+          </View>
+
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Notifications */}
+        <TouchableOpacity
+          style={styles.ordersButton}
+          onPress={() => router.push("/customer-notifications")}
+        >
+          <View style={styles.ordersLeft}>
+            <Text style={styles.ordersIcon}>🔔</Text>
+
+            <View>
+              <Text style={styles.ordersTitle}>Order Notifications</Text>
+
+              <Text style={styles.ordersSubtitle}>Status updates & store alerts</Text>
+            </View>
+          </View>
+
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Feedback & Reviews */}
+        <TouchableOpacity
+          style={styles.ordersButton}
+          onPress={() => router.push("/customer-feedbacks")}
+        >
+          <View style={styles.ordersLeft}>
+            <Text style={styles.ordersIcon}>⭐</Text>
+
+            <View>
+              <Text style={styles.ordersTitle}>Feedback & Reviews</Text>
+
+              <Text style={styles.ordersSubtitle}>Share feedback or view community ratings</Text>
             </View>
           </View>
 

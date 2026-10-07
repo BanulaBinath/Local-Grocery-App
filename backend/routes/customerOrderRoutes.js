@@ -4,6 +4,7 @@ const CustomerOrder = require("../models/CustomerOrder");
 const Customer = require("../models/Customer");
 const ShopProduct = require("../models/ShopProduct");
 const CustomerStaff = require("../models/CustomerStaff");
+const Notification = require("../models/Notification");
 
 const router = express.Router();
 
@@ -39,6 +40,9 @@ router.post("/", async (req, res) => {
       deliveryFee = 0,
       note = "",
       customerPhone = "",
+      pickupDate = "",
+      pickupTime = "",
+      pickupLocation = "",
     } = req.body;
 
     if (!customerId || !Array.isArray(items) || items.length === 0) {
@@ -106,8 +110,11 @@ router.post("/", async (req, res) => {
       customerName: customer.fullName,
       customerPhone: customerPhone
         ? String(customerPhone).trim()
-        : "",
+        : customer.phoneNumber || "",
       customerAddress: customer.address || "",
+      pickupDate: pickupDate ? String(pickupDate).trim() : "",
+      pickupTime: pickupTime ? String(pickupTime).trim() : "",
+      pickupLocation: pickupLocation ? String(pickupLocation).trim() : "",
       items: orderItems,
       itemsTotal,
       deliveryFee: fee,
@@ -136,6 +143,20 @@ router.post("/", async (req, res) => {
         product.inStock = product.stockQuantity > 0;
         await product.save();
       }
+    }
+
+    // Create in-app notification for the customer
+    try {
+      await Notification.create({
+        customerId: customer._id,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        title: `Order #${order.orderNumber} Placed 🎉`,
+        message: `Your grocery order has been submitted. Scheduled for pickup ${order.pickupDate ? `on ${order.pickupDate}` : "soon"}. Waiting for staff confirmation.`,
+        type: "order_placed",
+      });
+    } catch (notifErr) {
+      console.log("Error creating notification:", notifErr.message);
     }
 
     return res.status(201).json({
@@ -296,6 +317,16 @@ router.put("/:orderId/status", async (req, res) => {
 
     if (status === "cancelled") {
       order.cancelReason = String(cancelReason).trim();
+
+      // Return items to inventory
+      for (const item of order.items) {
+        const product = await ShopProduct.findById(item.productId);
+        if (product) {
+          product.stockQuantity = Number(product.stockQuantity) + Number(item.quantity);
+          product.inStock = product.stockQuantity > 0;
+          await product.save();
+        }
+      }
     }
 
     order.statusHistory.push({
@@ -305,6 +336,46 @@ router.put("/:orderId/status", async (req, res) => {
     });
 
     await order.save();
+
+    // Create Customer Notification
+    try {
+      let title = `Order #${order.orderNumber} Status Updated`;
+      let message = `Your order status changed to ${status}.`;
+      let notifType = "general";
+
+      if (status === "accepted") {
+        title = `Order #${order.orderNumber} Confirmed! ✅`;
+        message = `Staff has accepted your order! Scheduled pickup: ${order.pickupDate || 'Today'}${order.pickupTime ? ` at ${order.pickupTime}` : ''}.`;
+        notifType = "order_accepted";
+      } else if (status === "cancelled") {
+        title = `Order #${order.orderNumber} Rejected ❌`;
+        message = `Your order was rejected by staff. Reason: ${order.cancelReason || 'Item unavailable'}.`;
+        notifType = "order_rejected";
+      } else if (status === "preparing") {
+        title = `Order #${order.orderNumber} is Preparing 🧺`;
+        message = `Staff is currently packing your grocery items.`;
+        notifType = "order_ready";
+      } else if (status === "ready") {
+        title = `Order #${order.orderNumber} Ready for Pickup! 🛍️`;
+        message = `Your order is ready! Please proceed to ${order.pickupLocation || 'the store pickup counter'}.`;
+        notifType = "order_ready";
+      } else if (status === "completed") {
+        title = `Order #${order.orderNumber} Completed 🎉`;
+        message = `Your order has been completed. Thank you for shopping with us! Please share your feedback.`;
+        notifType = "order_completed";
+      }
+
+      await Notification.create({
+        customerId: order.customerId,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        title,
+        message,
+        type: notifType,
+      });
+    } catch (notifErr) {
+      console.log("Error creating status notification:", notifErr.message);
+    }
 
     const updatedOrder = await CustomerOrder.findById(order._id)
       .populate("customerId", "fullName email address")

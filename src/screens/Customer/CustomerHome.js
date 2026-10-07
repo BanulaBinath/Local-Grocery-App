@@ -2,10 +2,14 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
+  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,6 +18,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
+import {
+  getCart,
+  setCartItemQuantity,
+  updateCartItem,
+} from "../../utils/cartStorage";
 import styles from "./CustomerHome.styles";
 
 const CATEGORIES = [
@@ -25,20 +34,55 @@ const CATEGORIES = [
 ];
 
 export default function CustomerHome() {
+  const [customer, setCustomer] = useState(null);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState({});
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [placing, setPlacing] = useState(false);
 
+  // Product Details Modal State
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [modalQty, setModalQty] = useState(1);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Fetch logged in customer info
+  const loadCustomer = async () => {
+    try {
+      const data = await AsyncStorage.getItem("customer");
+      if (data) {
+        const parsed = JSON.parse(data);
+        setCustomer(parsed);
+        fetchNotificationsCount(parsed.id);
+      }
+    } catch (e) {
+      console.log("Error loading customer profile:", e);
+    }
+  };
+
+  // Fetch unread notifications count
+  const fetchNotificationsCount = async (customerId) => {
+    if (!customerId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/customer/${customerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (e) {
+      // ignore silent notification error
+    }
+  };
+
+  // Fetch products from staff inventory
   const fetchProducts = async (isSilent = false) => {
     try {
       const response = await fetch(`${API_URL}/api/shop-products`);
       const data = await response.json();
 
       if (response.ok) {
-        // Keep all active products so we can show both in-stock and out-of-stock items
         setProducts(data.products || []);
       } else if (!isSilent) {
         Alert.alert("Error", data.message || "Could not load products.");
@@ -56,82 +100,34 @@ export default function CustomerHome() {
     }
   };
 
+  // Load persistent cart
+  const syncCart = async () => {
+    const currentCart = await getCart();
+    setCart(currentCart);
+  };
+
   useFocusEffect(
     useCallback(() => {
+      loadCustomer();
+      syncCart();
       fetchProducts();
+
       const interval = setInterval(() => {
         fetchProducts(true);
-      }, 4000);
+      }, 5000);
 
       return () => clearInterval(interval);
     }, []),
   );
 
-  const handleProfile = () => {
-    router.push("/customer-profile");
-  };
-
-  const handleOrders = () => {
-    router.push("/order-history");
-  };
-
-  const handleProducts = () => {
-    router.push("/customer-products");
-  };
-
-  const updateQty = (product, delta) => {
-    const stockQty = Number(product.stockQuantity) || 0;
-    const isOutOfStock = !product.inStock || stockQty <= 0;
-
-    if (isOutOfStock && delta > 0) {
-      Alert.alert("Out of Stock", `${product.name} is currently out of stock.`);
-      return;
+  const getImageUrl = (image) => {
+    if (!image) return null;
+    if (image.startsWith("file://")) return null;
+    if (image.startsWith("http://") || image.startsWith("https://")) {
+      return image;
     }
-
-    setCart((prev) => {
-      const current = prev[product._id] || 0;
-      const next = current + delta;
-
-      if (next > stockQty && delta > 0) {
-        Alert.alert(
-          "Stock Limit Reached",
-          `Only ${stockQty} ${product.unit} available in stock.`,
-        );
-        return prev;
-      }
-
-      if (next <= 0) {
-        const copy = { ...prev };
-        delete copy[product._id];
-        return copy;
-      }
-
-      return { ...prev, [product._id]: next };
-    });
+    return `${API_URL}${image.startsWith("/") ? image : `/${image}`}`;
   };
-
-  const matchesCategory = (product, categoryId) => {
-    if (categoryId === "All") return true;
-    const pCat = (product.category || "").toLowerCase().trim();
-    const target = categoryId.toLowerCase();
-
-    if (target === "vegetables") return pCat.includes("veg");
-    if (target === "fruits") return pCat.includes("fruit");
-    if (target === "grocery") {
-      return (
-        pCat.includes("groc") ||
-        pCat.includes("dairy") ||
-        pCat.includes("general")
-      );
-    }
-    if (target === "spices") return pCat.includes("spice");
-
-    return pCat === target;
-  };
-
-  const filteredProducts = products.filter((p) =>
-    matchesCategory(p, selectedCategory),
-  );
 
   const getProductIcon = (product) => {
     const pCat = (product.category || "").toLowerCase();
@@ -142,101 +138,201 @@ export default function CustomerHome() {
     return "🛒";
   };
 
-  const cartItems = Object.entries(cart)
-    .map(([productId, quantity]) => {
-      const product = products.find((p) => p._id === productId);
-      if (!product) return null;
-      return { product, quantity };
-    })
-    .filter(Boolean);
+  // Update Cart Quantity
+  const handleUpdateQty = async (product, delta) => {
+    const stockQty = Number(product.stockQuantity) || 0;
+    const isOutOfStock = !product.inStock || stockQty <= 0;
 
-  const cartTotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  );
-
-  const placeOrder = async () => {
-    if (cartItems.length === 0) {
-      Alert.alert("Empty Cart", "Add products to your cart before ordering.");
+    if (isOutOfStock && delta > 0) {
+      Alert.alert("Out of Stock", `${product.name} is currently out of stock.`);
       return;
     }
 
-    try {
-      setPlacing(true);
-      const customerData = await AsyncStorage.getItem("customer");
-
-      if (!customerData) {
-        Alert.alert("Error", "Please log in to place an order.");
-        return;
-      }
-
-      const customer = JSON.parse(customerData);
-
-      const response = await fetch(`${API_URL}/api/customer-orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId: customer.id,
-          deliveryFee: 100,
-          items: cartItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setCart({});
-        Alert.alert(
-          "Order Placed 🎉",
-          `Order #${data.order.orderNumber} placed successfully!`,
-          [
-            {
-              text: "View Orders",
-              onPress: () => router.push("/order-history"),
-            },
-            { text: "OK" },
-          ],
-        );
-        fetchProducts();
-      } else {
-        Alert.alert("Order Failed", data.message || "Could not place order.");
-      }
-    } catch (error) {
-      console.log("Place order error:", error);
-      Alert.alert("Connection Error", "Could not connect to the server.");
-    } finally {
-      setPlacing(false);
+    const currentQty = cart[product._id] || 0;
+    if (currentQty + delta > stockQty && delta > 0) {
+      Alert.alert(
+        "Stock Limit Reached",
+        `Only ${stockQty} ${product.unit} available in stock.`,
+      );
+      return;
     }
+
+    const updated = await updateCartItem(product._id, delta, stockQty);
+    setCart({ ...updated });
   };
+
+  // Open Details Modal
+  const openProductDetails = (product) => {
+    setSelectedProduct(product);
+    const existingQty = cart[product._id] || 1;
+    const stockQty = Number(product.stockQuantity) || 0;
+    const initialQty = stockQty > 0 ? Math.min(existingQty, stockQty) : 1;
+    setModalQty(initialQty);
+    setModalVisible(true);
+  };
+
+  // Add from Details Modal to Cart
+  const handleModalAddToCart = async () => {
+    if (!selectedProduct) return;
+    const stockQty = Number(selectedProduct.stockQuantity) || 0;
+    if (!selectedProduct.inStock || stockQty <= 0) {
+      Alert.alert("Out of Stock", "This product is currently out of stock.");
+      return;
+    }
+
+    const updated = await setCartItemQuantity(
+      selectedProduct._id,
+      modalQty,
+      stockQty,
+    );
+    setCart({ ...updated });
+    setModalVisible(false);
+
+    Alert.alert(
+      "Added to Cart 🛒",
+      `${modalQty} ${selectedProduct.unit} of ${selectedProduct.name} added to your cart.`,
+      [
+        {
+          text: "Go to Cart",
+          onPress: () => router.push("/customer-cart"),
+        },
+        { text: "Continue Shopping" },
+      ],
+    );
+  };
+
+  // Filter products by category and search query
+  const filteredProducts = products.filter((product) => {
+    // 1. Category check
+    let categoryMatches = true;
+    if (selectedCategory !== "All") {
+      const pCat = (product.category || "").toLowerCase().trim();
+      const target = selectedCategory.toLowerCase();
+      if (target === "vegetables") categoryMatches = pCat.includes("veg");
+      else if (target === "fruits") categoryMatches = pCat.includes("fruit");
+      else if (target === "grocery") {
+        categoryMatches =
+          pCat.includes("groc") ||
+          pCat.includes("dairy") ||
+          pCat.includes("general");
+      } else if (target === "spices") categoryMatches = pCat.includes("spice");
+      else categoryMatches = pCat === target;
+    }
+
+    if (!categoryMatches) return false;
+
+    // 2. Search query check
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const name = (product.name || "").toLowerCase();
+      const cat = (product.category || "").toLowerCase();
+      const desc = (product.description || "").toLowerCase();
+
+      // Check simple matching or substring
+      return name.includes(q) || cat.includes(q) || desc.includes(q);
+    }
+
+    return true;
+  });
+
+  // Calculate cart counts and total
+  const cartItemCount = Object.values(cart).reduce((a, b) => a + b, 0);
+  const cartTotal = Object.entries(cart).reduce((sum, [pId, qty]) => {
+    const prod = products.find((p) => p._id === pId);
+    return prod ? sum + prod.price * qty : sum;
+  }, 0);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Top Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.logo}>Local Grocery</Text>
-            <Text style={styles.welcome}>Fresh Home 👋</Text>
+            <Text style={styles.welcome}>
+              {customer ? `${customer.fullName.split(" ")[0]} 👋` : "Fresh Store 👋"}
+            </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={handleProfile}
-          >
-            <Text style={styles.profileIcon}>👤</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => router.push("/customer-notifications")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.headerIconText}>🔔</Text>
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+
+            {/* Cart Icon */}
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => router.push("/customer-cart")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.headerIconText}>🛒</Text>
+              {cartItemCount > 0 ? (
+                <View style={[styles.badge, styles.badgeCart]}>
+                  <Text style={styles.badgeText}>
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+
+            {/* Profile */}
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => router.push("/customer-profile")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.headerIconText}>👤</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
+        {/* Search Bar Section */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search groceries (e.g. carrot, milk, onion)..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.trim() ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearSearchButton}
+              >
+                <Text style={styles.clearSearchText}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          {searchQuery.trim() ? (
+            <Text style={styles.searchResultsCount}>
+              Found {filteredProducts.length} product
+              {filteredProducts.length !== 1 ? "s" : ""} matching "{searchQuery}"
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Main Scroll Content */}
         <View style={styles.content}>
           {loading && !refreshing ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#1E3A8A" />
-              <Text style={styles.loadingText}>Fetching inventory...</Text>
+              <Text style={styles.loadingText}>Fetching available stock...</Text>
             </View>
           ) : (
             <ScrollView
@@ -248,96 +344,117 @@ export default function CustomerHome() {
                   onRefresh={() => {
                     setRefreshing(true);
                     fetchProducts();
+                    syncCart();
+                    loadCustomer();
                   }}
                   colors={["#1E3A8A"]}
                 />
               }
             >
               {/* Hero Banner */}
-              <View style={styles.heroSection}>
-                <Text style={styles.heroTitle}>Fresh Groceries,</Text>
-                <Text style={styles.heroSubtitle}>Real-Time Stock.</Text>
-                <Text style={styles.heroDescription}>
-                  Order directly from local inventory with live stock status.
-                </Text>
-              </View>
+              {!searchQuery.trim() && (
+                <View style={styles.heroBanner}>
+                  <Text style={styles.heroTag}>⚡ Direct From Store</Text>
+                  <Text style={styles.heroTitle}>Fresh Groceries,</Text>
+                  <Text style={styles.heroTitle}>Real-Time Live Stock.</Text>
+                  <Text style={styles.heroSubtitle}>
+                    Select items, reserve for pickup, and receive live status
+                    updates as staff prepares your order!
+                  </Text>
+                </View>
+              )}
 
-              {/* Category Filter Pills */}
+              {/* Categories */}
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Categories</Text>
+                <Text style={styles.sectionTitle}>
+                  {searchQuery.trim() ? "Search Results" : "Categories"}
+                </Text>
                 <Text style={styles.sectionSubtitle}>
                   {filteredProducts.length} Product
                   {filteredProducts.length !== 1 ? "s" : ""}
                 </Text>
               </View>
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoriesScroll}
-                contentContainerStyle={styles.categoriesContainer}
-              >
-                {CATEGORIES.map((cat) => {
-                  const isActive = selectedCategory === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryPill,
-                        isActive && styles.categoryPillActive,
-                      ]}
-                      onPress={() => setSelectedCategory(cat.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                      <Text
+              {!searchQuery.trim() && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.categoriesScroll}
+                  contentContainerStyle={styles.categoriesContainer}
+                >
+                  {CATEGORIES.map((cat) => {
+                    const isActive = selectedCategory === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
                         style={[
-                          styles.categoryText,
-                          isActive && styles.categoryTextActive,
+                          styles.categoryPill,
+                          isActive && styles.categoryPillActive,
                         ]}
+                        onPress={() => setSelectedCategory(cat.id)}
+                        activeOpacity={0.8}
                       >
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                        <Text
+                          style={[
+                            styles.categoryText,
+                            isActive && styles.categoryTextActive,
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
 
               {/* Products List */}
               {filteredProducts.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>📦</Text>
+                  <Text style={styles.emptyIcon}>🔍</Text>
                   <Text style={styles.emptyTitle}>No Products Found</Text>
                   <Text style={styles.emptyText}>
-                    No products currently available in this category.
+                    {searchQuery.trim()
+                      ? `No items match "${searchQuery}". Please check spelling or search another item.`
+                      : "No products currently available in this category."}
                   </Text>
                 </View>
               ) : (
                 filteredProducts.map((product) => {
                   const qty = cart[product._id] || 0;
                   const stockQuantity = Number(product.stockQuantity) || 0;
-                  const isOutOfStock =
-                    !product.inStock || stockQuantity <= 0;
+                  const isOutOfStock = !product.inStock || stockQuantity <= 0;
+                  const imageUrl = getImageUrl(product.image);
 
                   return (
-                    <View
+                    <TouchableOpacity
                       key={product._id}
-                      style={[
-                        styles.card,
-                        isOutOfStock && styles.cardDisabled,
-                      ]}
+                      style={[styles.card, isOutOfStock && styles.cardDisabled]}
+                      activeOpacity={0.88}
+                      onPress={() => openProductDetails(product)}
                     >
+                      {/* Product Thumbnail */}
                       <View
                         style={[
                           styles.cardLeft,
                           isOutOfStock && styles.cardLeftDisabled,
                         ]}
                       >
-                        <Text style={styles.productIcon}>
-                          {getProductIcon(product)}
-                        </Text>
+                        {imageUrl ? (
+                          <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.productThumbImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={styles.productIcon}>
+                            {getProductIcon(product)}
+                          </Text>
+                        )}
                       </View>
 
+                      {/* Info */}
                       <View style={styles.cardBody}>
                         <View style={styles.productHeaderRow}>
                           <Text style={styles.productName}>{product.name}</Text>
@@ -352,39 +469,40 @@ export default function CustomerHome() {
                           Rs. {Number(product.price).toFixed(2)} / {product.unit}
                         </Text>
 
-                        {/* Stock Status Badge */}
+                        {/* Stock status pill */}
                         <View style={styles.stockRow}>
                           {isOutOfStock ? (
                             <View style={styles.outOfStockBadge}>
                               <Text style={styles.outOfStockText}>
-                                Out of Stock
+                                ✕ Out of Stock
                               </Text>
                             </View>
                           ) : (
                             <View style={styles.inStockBadge}>
                               <Text style={styles.inStockText}>
-                                In Stock ({stockQuantity} {product.unit})
+                                ✓ In Stock: {stockQuantity} {product.unit}
                               </Text>
                             </View>
                           )}
                         </View>
                       </View>
 
-                      {/* Quantity Controls / Order Button */}
+                      {/* Controls */}
                       {isOutOfStock ? (
                         <TouchableOpacity
                           style={[styles.addButton, styles.addButtonDisabled]}
                           disabled={true}
                         >
-                          <Text style={styles.addButtonTextDisabled}>
-                            Out of Stock
-                          </Text>
+                          <Text style={styles.addButtonTextDisabled}>Out</Text>
                         </TouchableOpacity>
                       ) : qty > 0 ? (
-                        <View style={styles.qtyControls}>
+                        <View
+                          style={styles.qtyControls}
+                          onStartShouldSetResponder={() => true}
+                        >
                           <TouchableOpacity
                             style={styles.qtyButton}
-                            onPress={() => updateQty(product, -1)}
+                            onPress={() => handleUpdateQty(product, -1)}
                           >
                             <Text style={styles.qtyButtonText}>−</Text>
                           </TouchableOpacity>
@@ -394,7 +512,7 @@ export default function CustomerHome() {
                               styles.qtyButton,
                               qty >= stockQuantity && styles.qtyButtonDisabled,
                             ]}
-                            onPress={() => updateQty(product, 1)}
+                            onPress={() => handleUpdateQty(product, 1)}
                             disabled={qty >= stockQuantity}
                           >
                             <Text
@@ -411,12 +529,12 @@ export default function CustomerHome() {
                       ) : (
                         <TouchableOpacity
                           style={styles.addButton}
-                          onPress={() => updateQty(product, 1)}
+                          onPress={() => handleUpdateQty(product, 1)}
                         >
                           <Text style={styles.addButtonText}>+ Add</Text>
                         </TouchableOpacity>
                       )}
-                    </View>
+                    </TouchableOpacity>
                   );
                 })
               )}
@@ -425,24 +543,20 @@ export default function CustomerHome() {
         </View>
 
         {/* Floating Cart Footer */}
-        {cartItems.length > 0 ? (
+        {cartItemCount > 0 ? (
           <View style={styles.cartFooter}>
             <View style={styles.cartInfo}>
               <Text style={styles.cartCount}>
-                {cartItems.reduce((acc, i) => acc + i.quantity, 0)} Items Selected
+                🛒 {cartItemCount} item{cartItemCount > 1 ? "s" : ""} selected
               </Text>
-              <Text style={styles.cartTotal}>
-                Rs. {cartTotal.toFixed(2)}
-              </Text>
+              <Text style={styles.cartTotal}>Rs. {cartTotal.toFixed(2)}</Text>
             </View>
             <TouchableOpacity
               style={styles.checkoutButton}
-              onPress={placeOrder}
-              disabled={placing}
+              onPress={() => router.push("/customer-cart")}
+              activeOpacity={0.85}
             >
-              <Text style={styles.checkoutButtonText}>
-                {placing ? "Placing..." : "Order Now"}
-              </Text>
+              <Text style={styles.checkoutButtonText}>View Cart & Checkout ›</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -454,24 +568,201 @@ export default function CustomerHome() {
             <Text style={styles.activeNavText}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem} onPress={handleProducts}>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/customer-cart")}
+          >
             <Text style={styles.navIcon}>🛒</Text>
-            <Text style={styles.navText}>Products</Text>
+            <Text style={styles.navText}>Cart</Text>
+            {cartItemCount > 0 ? (
+              <View style={styles.navBadge}>
+                <Text style={styles.navBadgeText}>{cartItemCount}</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem} onPress={handleOrders}>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/order-history")}
+          >
             <Text style={styles.navIcon}>📦</Text>
-            <Text style={styles.navText}>Orders</Text>
-          </TouchableOpacity> 
+            <Text style={styles.navText}>My Orders</Text>
+          </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/customer-feedbacks")}
+          >
+            <Text style={styles.navIcon}>⭐</Text>
+            <Text style={styles.navText}>Feedback</Text>
+          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
-            <Text style={styles.navIcon}>🗨️</Text>
-            <Text style={styles.navText}>Message</Text>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/customer-profile")}
+          >
+            <Text style={styles.navIcon}>👤</Text>
+            <Text style={styles.navText}>Profile</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Product Details Modal */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHandleBar} />
+
+              {selectedProduct && (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {/* Top Row: Title + Close Button */}
+                  <View style={styles.modalHeaderRow}>
+                    <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+                    <TouchableOpacity
+                      style={styles.modalCloseButton}
+                      onPress={() => setModalVisible(false)}
+                    >
+                      <Text style={styles.modalCloseText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Product Image */}
+                  <View style={styles.modalImageWrapper}>
+                    {getImageUrl(selectedProduct.image) ? (
+                      <Image
+                        source={{ uri: getImageUrl(selectedProduct.image) }}
+                        style={styles.modalImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.modalPlaceholderIcon}>
+                        {getProductIcon(selectedProduct)}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Price & Category */}
+                  <View style={styles.modalMetaRow}>
+                    <View style={styles.modalCategoryBadge}>
+                      <Text style={styles.modalCategoryBadgeText}>
+                        {selectedProduct.category || "General"}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: "#64748B" }}>
+                      Unit: {selectedProduct.unit}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.modalPriceTag}>
+                    Rs. {Number(selectedProduct.price).toFixed(2)}{" "}
+                    <Text style={{ fontSize: 13, color: "#64748B", fontWeight: "normal" }}>
+                      per {selectedProduct.unit}
+                    </Text>
+                  </Text>
+
+                  {/* Available Stock Box */}
+                  <View style={styles.modalStockInfoRow}>
+                    <Text style={styles.modalStockLabel}>Available Stock:</Text>
+                    <Text style={styles.modalStockValue}>
+                      {Number(selectedProduct.stockQuantity) > 0
+                        ? `${selectedProduct.stockQuantity} ${selectedProduct.unit} In Stock`
+                        : "Out of Stock"}
+                    </Text>
+                  </View>
+
+                  {/* Description */}
+                  <View style={styles.modalDescriptionBox}>
+                    <Text style={styles.modalDescriptionLabel}>
+                      Product Description:
+                    </Text>
+                    <Text style={styles.modalDescriptionText}>
+                      {selectedProduct.description ||
+                        `Fresh, quality-inspected ${selectedProduct.name} sourced directly from local markets and stored under optimal grocery conditions.`}
+                    </Text>
+                  </View>
+
+                  {/* Quantity Selector */}
+                  {Number(selectedProduct.stockQuantity) > 0 ? (
+                    <View style={styles.modalQtyRow}>
+                      <Text style={styles.modalQtyLabel}>Quantity:</Text>
+                      <View style={styles.modalQtyControls}>
+                        <TouchableOpacity
+                          style={[
+                            styles.modalQtyBtn,
+                            modalQty <= 1 && styles.modalQtyBtnDisabled,
+                          ]}
+                          onPress={() => setModalQty(Math.max(1, modalQty - 1))}
+                          disabled={modalQty <= 1}
+                        >
+                          <Text style={styles.modalQtyBtnText}>−</Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.modalQtyValue}>{modalQty}</Text>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.modalQtyBtn,
+                            modalQty >= Number(selectedProduct.stockQuantity) &&
+                              styles.modalQtyBtnDisabled,
+                          ]}
+                          onPress={() =>
+                            setModalQty(
+                              Math.min(
+                                Number(selectedProduct.stockQuantity),
+                                modalQty + 1,
+                              ),
+                            )
+                          }
+                          disabled={
+                            modalQty >= Number(selectedProduct.stockQuantity)
+                          }
+                        >
+                          <Text style={styles.modalQtyBtnText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* Buttons */}
+                  <View style={styles.modalActionsRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalAddToCartBtn,
+                        Number(selectedProduct.stockQuantity) <= 0 &&
+                          styles.modalAddToCartDisabled,
+                      ]}
+                      onPress={handleModalAddToCart}
+                      disabled={Number(selectedProduct.stockQuantity) <= 0}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.modalAddToCartText}>
+                        {Number(selectedProduct.stockQuantity) > 0
+                          ? `Add to Cart • Rs. ${(selectedProduct.price * modalQty).toFixed(2)}`
+                          : "Out of Stock"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.modalGoToCartBtn}
+                      onPress={() => {
+                        setModalVisible(false);
+                        router.push("/customer-cart");
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.modalGoToCartText}>Cart ({cartItemCount})</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
 }
-

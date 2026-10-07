@@ -232,6 +232,22 @@ export default function Login() {
               <Text style={styles.registerLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Customer Feedback for Visitors and Customers */}
+          <TouchableOpacity
+            style={styles.feedbackCard}
+            onPress={() => router.push("/customer-feedbacks")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.feedbackIcon}>⭐</Text>
+            <View style={styles.feedbackTextWrap}>
+              <Text style={styles.feedbackTitle}>Customer Reviews & Feedback</Text>
+              <Text style={styles.feedbackSubtitle}>
+                See verified ratings & feedback from local shoppers
+              </Text>
+            </View>
+            <Text style={styles.feedbackArrow}>›</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

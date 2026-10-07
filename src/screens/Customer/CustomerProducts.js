@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-
 import {
   ActivityIndicator,
   Alert,
@@ -8,14 +7,15 @@ import {
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
+import { getCart, updateCartItem } from "../../utils/cartStorage";
 import styles from "./CustomerProducts.styles";
 
 const CATEGORIES = [
@@ -29,10 +29,10 @@ const CATEGORIES = [
 export default function CustomerProducts() {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [search, setSearch] = useState("");
   const [cart, setCart] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [placing, setPlacing] = useState(false);
 
   const fetchProducts = async (isSilent = false) => {
     try {
@@ -41,9 +41,7 @@ export default function CustomerProducts() {
 
       if (response.ok) {
         setProducts(
-          (data.products || []).filter(
-            (p) => p.status === "active",
-          ),
+          (data.products || []).filter((p) => p.status === "active"),
         );
       } else if (!isSilent) {
         Alert.alert("Error", data.message || "Could not load products.");
@@ -61,6 +59,18 @@ export default function CustomerProducts() {
     }
   };
 
+  const syncCart = async () => {
+    const current = await getCart();
+    setCart(current);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      syncCart();
+      fetchProducts();
+    }, []),
+  );
+
   const getImageUrl = (product) => {
     if (product.image && !product.image.startsWith("file://")) {
       if (product.image.startsWith("http://") || product.image.startsWith("https://")) {
@@ -68,27 +78,10 @@ export default function CustomerProducts() {
       }
       return `${API_URL}${product.image.startsWith("/") ? product.image : `/${product.image}`}`;
     }
-    const name = (product.name || "").toLowerCase();
-    if (name.includes("banana")) return "https://images.unsplash.com/photo-1571501478200-720615709ee0?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Vegetables") return "https://images.unsplash.com/photo-1566385101042-1a0e10ccff12?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Fruits") return "https://images.unsplash.com/photo-1610832958506-aa56368149eb?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Grains") return "https://images.unsplash.com/photo-1586201375761-83865001e8aa?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Spices") return "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=200&q=80";
     return null;
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchProducts();
-      const interval = setInterval(() => {
-        fetchProducts(true);
-      }, 4000);
-
-      return () => clearInterval(interval);
-    }, []),
-  );
-
-  const updateQty = (product, delta) => {
+  const updateQty = async (product, delta) => {
     const stockQty = Number(product.stockQuantity) || 0;
     const isOutOfStock = !product.inStock || stockQty <= 0;
 
@@ -97,26 +90,17 @@ export default function CustomerProducts() {
       return;
     }
 
-    setCart((prev) => {
-      const current = prev[product._id] || 0;
-      const next = current + delta;
+    const currentQty = cart[product._id] || 0;
+    if (currentQty + delta > stockQty && delta > 0) {
+      Alert.alert(
+        "Stock Limit Reached",
+        `Only ${stockQty} ${product.unit} available in stock.`,
+      );
+      return;
+    }
 
-      if (next > stockQty && delta > 0) {
-        Alert.alert(
-          "Stock Limit Reached",
-          `Only ${stockQty} ${product.unit} available in stock.`,
-        );
-        return prev;
-      }
-
-      if (next <= 0) {
-        const copy = { ...prev };
-        delete copy[product._id];
-        return copy;
-      }
-
-      return { ...prev, [product._id]: next };
-    });
+    const updated = await updateCartItem(product._id, delta, stockQty);
+    setCart({ ...updated });
   };
 
   const matchesCategory = (product, categoryId) => {
@@ -138,9 +122,17 @@ export default function CustomerProducts() {
     return pCat === target;
   };
 
-  const filteredProducts = products.filter((p) =>
-    matchesCategory(p, selectedCategory),
-  );
+  const filteredProducts = products.filter((p) => {
+    const matchCat = matchesCategory(p, selectedCategory);
+    if (!matchCat) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      return name.includes(q) || cat.includes(q);
+    }
+    return true;
+  });
 
   const getProductIcon = (product) => {
     const pCat = (product.category || "").toLowerCase();
@@ -151,78 +143,11 @@ export default function CustomerProducts() {
     return "🛒";
   };
 
-  const cartItems = Object.entries(cart)
-    .map(([productId, quantity]) => {
-      const product = products.find((p) => p._id === productId);
-      if (!product) return null;
-      return { product, quantity };
-    })
-    .filter(Boolean);
-
-  const cartTotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  );
-
-  const placeOrder = async () => {
-    if (cartItems.length === 0) {
-      Alert.alert("Empty cart", "Add at least one product to place an order.");
-      return;
-    }
-
-    try {
-      setPlacing(true);
-
-      const customerData = await AsyncStorage.getItem("customer");
-
-      if (!customerData) {
-        Alert.alert("Error", "Please log in as a customer.");
-        return;
-      }
-
-      const customer = JSON.parse(customerData);
-
-      const response = await fetch(`${API_URL}/api/customer-orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId: customer.id,
-          deliveryFee: 100,
-          items: cartItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setCart({});
-        Alert.alert(
-          "Order Placed",
-          `Order #${data.order.orderNumber} placed successfully.`,
-          [
-            {
-              text: "View Orders",
-              onPress: () => router.push("/order-history"),
-            },
-            { text: "OK" },
-          ],
-        );
-        fetchProducts();
-      } else {
-        Alert.alert("Error", data.message || "Could not place order.");
-      }
-    } catch (error) {
-      console.log("Place order error:", error);
-      Alert.alert("Connection Error", "Could not connect to the server.");
-    } finally {
-      setPlacing(false);
-    }
-  };
+  const cartItemsCount = Object.values(cart).reduce((a, b) => a + b, 0);
+  const cartTotal = Object.entries(cart).reduce((sum, [pId, qty]) => {
+    const prod = products.find((p) => p._id === pId);
+    return prod ? sum + prod.price * qty : sum;
+  }, 0);
 
   if (loading) {
     return (
@@ -246,7 +171,59 @@ export default function CustomerProducts() {
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Browse Products</Text>
-          <View style={styles.headerSpace} />
+          <TouchableOpacity
+            onPress={() => router.push("/customer-cart")}
+            style={{ padding: 6 }}
+          >
+            <Text style={{ fontSize: 20 }}>🛒</Text>
+            {cartItemsCount > 0 ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  backgroundColor: "#1E3A8A",
+                  borderRadius: 8,
+                  minWidth: 16,
+                  height: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#FFF", fontSize: 10, fontWeight: "800" }}>
+                  {cartItemsCount}
+                </Text>
+              </View>
+            ) : null}
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Input */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "#FFF" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#F1F5F9",
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ fontSize: 14, marginRight: 8 }}>🔍</Text>
+            <TextInput
+              style={{ flex: 1, fontSize: 14, color: "#0F172A", padding: 0 }}
+              placeholder="Search products..."
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.trim() ? (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <Text style={{ color: "#94A3B8", fontWeight: "700" }}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
 
         {/* Category Filters Bar */}
@@ -291,6 +268,7 @@ export default function CustomerProducts() {
               onRefresh={() => {
                 setRefreshing(true);
                 fetchProducts();
+                syncCart();
               }}
               colors={["#1E3A8A"]}
             />
@@ -309,6 +287,7 @@ export default function CustomerProducts() {
               const qty = cart[product._id] || 0;
               const stockQuantity = Number(product.stockQuantity) || 0;
               const isOutOfStock = !product.inStock || stockQuantity <= 0;
+              const imageUrl = getImageUrl(product);
 
               return (
                 <View
@@ -319,13 +298,13 @@ export default function CustomerProducts() {
                     style={[
                       styles.cardLeft,
                       isOutOfStock && styles.cardLeftDisabled,
-                      { overflow: 'hidden' }
+                      { overflow: "hidden" },
                     ]}
                   >
-                    {getImageUrl(product) ? (
+                    {imageUrl ? (
                       <Image
-                        source={{ uri: getImageUrl(product) }}
-                        style={{ width: '100%', height: '100%', borderRadius: 12 }}
+                        source={{ uri: imageUrl }}
+                        style={{ width: "100%", height: "100%", borderRadius: 12 }}
                         resizeMode="cover"
                       />
                     ) : (
@@ -407,21 +386,18 @@ export default function CustomerProducts() {
           )}
         </ScrollView>
 
-        {cartItems.length > 0 ? (
+        {cartItemsCount > 0 ? (
           <View style={styles.footer}>
             <View>
               <Text style={styles.footerLabel}>
-                {cartItems.length} item(s) · Rs. {cartTotal.toFixed(2)} + fee
+                {cartItemsCount} item(s) in Cart · Rs. {cartTotal.toFixed(2)}
               </Text>
             </View>
             <TouchableOpacity
               style={styles.placeButton}
-              onPress={placeOrder}
-              disabled={placing}
+              onPress={() => router.push("/customer-cart")}
             >
-              <Text style={styles.placeButtonText}>
-                {placing ? "Placing..." : "Place Order"}
-              </Text>
+              <Text style={styles.placeButtonText}>View Cart & Checkout ›</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -429,4 +405,3 @@ export default function CustomerProducts() {
     </SafeAreaView>
   );
 }
-

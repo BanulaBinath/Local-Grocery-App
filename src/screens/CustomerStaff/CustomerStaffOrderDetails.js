@@ -358,6 +358,29 @@ export default function CustomerStaffOrderDetails() {
               <Text style={styles.chatButtonText}>Message Customer</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Pickup Details */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>📅 Pickup Details</Text>
+
+            <Text style={styles.detailLabel}>Pickup Date</Text>
+            <Text style={styles.detailValue}>{order.pickupDate || "Today / Standard"}</Text>
+
+            <Text style={styles.detailLabel}>Pickup Time</Text>
+            <Text style={styles.detailValue}>{order.pickupTime || "Anytime during open hours"}</Text>
+
+            <Text style={styles.detailLabel}>Pickup Location</Text>
+            <Text style={styles.detailValue}>{order.pickupLocation || "Main Store Pickup Counter"}</Text>
+
+            {order.note ? (
+              <>
+                <Text style={styles.detailLabel}>Customer Note / Instructions</Text>
+                <Text style={[styles.detailValue, { fontStyle: "italic", color: "#4B5563" }]}>
+                  "{order.note}"
+                </Text>
+              </>
+            ) : null}
+          </View>
         </ScrollView>
 
         {(action || canCancel) && (

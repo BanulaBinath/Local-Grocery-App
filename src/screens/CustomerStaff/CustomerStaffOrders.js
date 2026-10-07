@@ -432,6 +432,18 @@ export default function CustomerStaffOrders() {
                           Reason: {order.cancelReason}
                         </Text>
                       ) : null}
+                      {order.pickupDate || order.pickupTime || order.pickupLocation ? (
+                        <View style={{ marginTop: 4, backgroundColor: '#F0FDF4', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#BBF7D0' }}>
+                          <Text style={{ fontSize: 11, color: '#166534', fontWeight: '600' }}>
+                            📅 Pickup: {order.pickupDate || 'Today'} {order.pickupTime ? `• ${order.pickupTime}` : ''}
+                          </Text>
+                          {order.pickupLocation ? (
+                            <Text style={{ fontSize: 10, color: '#15803D' }}>
+                              📍 {order.pickupLocation}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ) : null}
                     </View>
                   </View>
 

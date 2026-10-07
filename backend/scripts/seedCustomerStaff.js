@@ -12,6 +12,7 @@ const CustomerStaff = require("../models/CustomerStaff");
 const Customer = require("../models/Customer");
 const ShopProduct = require("../models/ShopProduct");
 const CustomerOrder = require("../models/CustomerOrder");
+const Feedback = require("../models/Feedback");
 
 const STAFF_EMAIL = "samani@gmail.com";
 const STAFF_PASSWORD = "samani123";
@@ -261,6 +262,34 @@ async function seed() {
     }
   } else {
     console.log("Orders already exist, skipping sample order creation.");
+  }
+
+  const existingFeedback = await Feedback.countDocuments();
+  if (existingFeedback === 0) {
+    await Feedback.create([
+      {
+        customerId: customer._id,
+        customerName: "Amali Perera",
+        customerEmail: "amali@gmail.com",
+        rating: 5,
+        comment:
+          "Very fresh organic vegetables! The store pickup was ready on time and staff packed everything neatly. Highly recommended!",
+        orderNumber: 1023,
+      },
+      {
+        customerName: "Kamal Fernando",
+        rating: 5,
+        comment:
+          "Saved so much time by ordering carrots, onions, and milk in advance. Quick counter pickup with zero waiting line.",
+      },
+      {
+        customerName: "Nimali Silva",
+        rating: 4,
+        comment:
+          "Good quality grocery items at fair local prices. The pickup slot system is super convenient.",
+      },
+    ]);
+    console.log("Seeded sample customer feedbacks.");
   }
 
   console.log("\nSeed complete.");

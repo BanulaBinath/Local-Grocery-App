@@ -77,6 +77,24 @@ const customerOrderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    pickupDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pickupTime: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pickupLocation: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     items: {
       type: [orderItemSchema],
       validate: {

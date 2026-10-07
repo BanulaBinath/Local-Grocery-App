@@ -116,6 +116,45 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1E3A8A",
   },
+
+  feedbackCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 24,
+  },
+
+  feedbackIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+
+  feedbackTextWrap: {
+    flex: 1,
+  },
+
+  feedbackTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E3A8A",
+  },
+
+  feedbackSubtitle: {
+    fontSize: 12,
+    color: "#3B82F6",
+    marginTop: 2,
+  },
+
+  feedbackArrow: {
+    fontSize: 18,
+    color: "#1E3A8A",
+    fontWeight: "700",
+    marginLeft: 6,
+  },
 });
 
 export default styles;
