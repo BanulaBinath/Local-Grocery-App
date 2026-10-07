@@ -70,17 +70,38 @@ export default function CustomerStaffMessages() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-select chat if passed via params
+  // Auto-select chat if passed via params, or create dynamic thread if no previous message exists
   useEffect(() => {
-    if (params.orderNumber && params.customerName && conversations.length > 0) {
+    if ((params.orderNumber || params.customerName) && !loading) {
+      const targetOrder = params.orderNumber ? String(params.orderNumber) : null;
+      const targetName = params.customerName ? String(params.customerName).toLowerCase() : null;
+
       const exists = conversations.find(
-        (c) => c.orderNumber === String(params.orderNumber) || c.customerName === params.customerName
+        (c) =>
+          (targetOrder && String(c.orderNumber) === targetOrder) ||
+          (targetName && c.customerName?.toLowerCase() === targetName)
       );
+
       if (exists) {
         setActiveChatId(exists.id);
+      } else if (params.customerName || params.orderNumber) {
+        const tempId = `temp_${params.orderNumber || params.customerName}`;
+        const newChat = {
+          id: tempId,
+          customerId: params.customerId || "temp_customer",
+          customerName: params.customerName || (params.orderNumber ? `Customer #${params.orderNumber}` : "Customer"),
+          orderNumber: params.orderNumber ? String(params.orderNumber) : "",
+          avatarText: "👤",
+          messages: [],
+        };
+        setConversations((prev) => {
+          if (prev.some((c) => c.id === tempId)) return prev;
+          return [newChat, ...prev];
+        });
+        setActiveChatId(tempId);
       }
     }
-  }, [params, conversations]);
+  }, [params, conversations, loading]);
 
   const sendMessage = async () => {
     if (!input.trim() || !activeChatId || !activeChat) return;
@@ -133,9 +154,24 @@ export default function CustomerStaffMessages() {
 
   const handleBack = () => {
     if (activeChatId) {
-      setActiveChatId(null);
+      // If we navigated directly from another screen with orderNumber or customerName, go back to previous screen safely
+      if (params.orderNumber || params.customerName) {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace("/customer-staff-dashboard");
+        }
+      } else {
+        // Otherwise switch back to the Inbox list view
+        setActiveChatId(null);
+      }
     } else {
-      router.back();
+      // On Inbox list view: safely go back to previous screen or dashboard
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/customer-staff-dashboard");
+      }
     }
   };
 
@@ -164,7 +200,16 @@ export default function CustomerStaffMessages() {
             </Text>
           </View>
 
-          {activeChatId && <View style={styles.headerSpace} />}
+          {activeChatId ? (
+            <TouchableOpacity
+              style={styles.inboxSwitchButton}
+              onPress={() => setActiveChatId(null)}
+            >
+              <Text style={styles.inboxSwitchText}>📥 Inbox</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerSpace} />
+          )}
         </View>
 
         {/* Body View */}

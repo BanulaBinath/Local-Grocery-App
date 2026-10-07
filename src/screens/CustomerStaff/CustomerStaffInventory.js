@@ -322,11 +322,33 @@ export default function CustomerStaffInventory() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
-            <View>
-              <Text style={styles.headerTitle}>🏪 Store Inventory</Text>
-              <Text style={styles.headerSubtitle}>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} listed
-              </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace("/customer-staff-dashboard");
+                  }
+                }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "#F0FDF4",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 10,
+                }}
+              >
+                <Text style={{ fontSize: 18, color: "#15803D", fontWeight: "700" }}>←</Text>
+              </TouchableOpacity>
+              <View>
+                <Text style={styles.headerTitle}>🏪 Store Inventory</Text>
+                <Text style={styles.headerSubtitle}>
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} listed
+                </Text>
+              </View>
             </View>
             <TouchableOpacity style={styles.addButton} onPress={openAdd} activeOpacity={0.85}>
               <Text style={styles.addButtonText}>＋ Add</Text>

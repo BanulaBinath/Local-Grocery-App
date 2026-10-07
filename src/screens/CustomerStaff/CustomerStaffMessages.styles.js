@@ -58,6 +58,21 @@ export default StyleSheet.create({
     width: 40,
   },
 
+  inboxSwitchButton: {
+    backgroundColor: PRIMARY_SOFT,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+  },
+
+  inboxSwitchText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PRIMARY,
+  },
+
   listContainer: {
     padding: 16,
   },

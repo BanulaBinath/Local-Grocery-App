@@ -202,7 +202,13 @@ export default function CustomerStaffOrderDetails() {
             This order may have been removed or the link is invalid.
           </Text>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/customer-staff-orders");
+              }
+            }}
             style={{ backgroundColor: C.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 }}
           >
             <Text style={{ color: C.white, fontWeight: "800", fontSize: 15 }}>← Go Back</Text>
@@ -230,7 +236,13 @@ export default function CustomerStaffOrderDetails() {
         shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3,
       }}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/customer-staff-orders");
+            }
+          }}
           style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.primarySf, alignItems: "center", justifyContent: "center" }}
         >
           <Text style={{ fontSize: 20, color: C.primary, fontWeight: "700" }}>←</Text>

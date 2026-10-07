@@ -285,6 +285,26 @@ export default function CustomerStaffOrders() {
         {/* Header with Search and Status Filters */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/customer-staff-dashboard");
+                }
+              }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: "#F0FDF4",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 10,
+              }}
+            >
+              <Text style={{ fontSize: 18, color: "#15803D", fontWeight: "700" }}>←</Text>
+            </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>Order Management</Text>
             </View>
