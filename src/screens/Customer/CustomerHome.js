@@ -19,6 +19,10 @@ import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
 import {
+  SAMPLE_PRODUCTS,
+  resolveProductImageUrl,
+} from "../../constants/sampleProducts";
+import {
   getCart,
   setCartItemQuantity,
   updateCartItem,
@@ -35,12 +39,12 @@ const CATEGORIES = [
 
 export default function CustomerHome() {
   const [customer, setCustomer] = useState(null);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(SAMPLE_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Product Details Modal State
@@ -55,7 +59,7 @@ export default function CustomerHome() {
       if (data) {
         const parsed = JSON.parse(data);
         setCustomer(parsed);
-        fetchNotificationsCount(parsed.id);
+        fetchNotificationsCount(parsed._id || parsed.id);
       }
     } catch (e) {
       console.log("Error loading customer profile:", e);
@@ -66,7 +70,9 @@ export default function CustomerHome() {
   const fetchNotificationsCount = async (customerId) => {
     if (!customerId) return;
     try {
-      const res = await fetch(`${API_URL}/api/notifications/customer/${customerId}`);
+      const res = await fetch(
+        `${API_URL}/api/notifications/customer/${customerId}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.unreadCount || 0);
@@ -76,22 +82,23 @@ export default function CustomerHome() {
     }
   };
 
-  // Fetch products from staff inventory
+  // Fetch products from staff inventory (fallback to SAMPLE_PRODUCTS if empty)
   const fetchProducts = async (isSilent = false) => {
     try {
       const response = await fetch(`${API_URL}/api/shop-products`);
       const data = await response.json();
 
-      if (response.ok) {
-        setProducts(data.products || []);
-      } else if (!isSilent) {
-        Alert.alert("Error", data.message || "Could not load products.");
+      if (response.ok && Array.isArray(data.products) && data.products.length > 0) {
+        setProducts(data.products);
+      } else {
+        // Fallback to sample products with images so screen is never empty
+        setProducts(SAMPLE_PRODUCTS);
       }
     } catch (error) {
       if (!isSilent) {
         console.log("Fetch shop products error:", error);
-        Alert.alert("Connection Error", "Could not connect to the server.");
       }
+      setProducts(SAMPLE_PRODUCTS);
     } finally {
       if (!isSilent) {
         setLoading(false);
@@ -120,17 +127,10 @@ export default function CustomerHome() {
     }, []),
   );
 
-  const getImageUrl = (image) => {
-    if (!image) return null;
-    if (image.startsWith("file://")) return null;
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      return image;
-    }
-    return `${API_URL}${image.startsWith("/") ? image : `/${image}`}`;
-  };
+  const getImageUrl = (product) => resolveProductImageUrl(product);
 
   const getProductIcon = (product) => {
-    const pCat = (product.category || "").toLowerCase();
+    const pCat = (product?.category || "").toLowerCase();
     if (pCat.includes("veg")) return "🥬";
     if (pCat.includes("fruit")) return "🍎";
     if (pCat.includes("spice")) return "🌶️";
@@ -228,7 +228,7 @@ export default function CustomerHome() {
       const cat = (product.category || "").toLowerCase();
       const desc = (product.description || "").toLowerCase();
 
-      // Check simple matching or substring
+      // Check name, category or description matching
       return name.includes(q) || cat.includes(q) || desc.includes(q);
     }
 
@@ -245,7 +245,7 @@ export default function CustomerHome() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top Header */}
+        {/* Top Header - ONLY Notification Icon kept at top */}
         <View style={styles.header}>
           <View>
             <Text style={styles.logo}>Local Grocery</Text>
@@ -255,7 +255,7 @@ export default function CustomerHome() {
           </View>
 
           <View style={styles.headerRight}>
-            {/* Notification Bell */}
+            {/* Notification Bell Only */}
             <TouchableOpacity
               style={styles.headerIconButton}
               onPress={() => router.push("/customer-notifications")}
@@ -269,31 +269,6 @@ export default function CustomerHome() {
                   </Text>
                 </View>
               ) : null}
-            </TouchableOpacity>
-
-            {/* Cart Icon */}
-            <TouchableOpacity
-              style={styles.headerIconButton}
-              onPress={() => router.push("/customer-cart")}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.headerIconText}>🛒</Text>
-              {cartItemCount > 0 ? (
-                <View style={[styles.badge, styles.badgeCart]}>
-                  <Text style={styles.badgeText}>
-                    {cartItemCount > 99 ? "99+" : cartItemCount}
-                  </Text>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-
-            {/* Profile */}
-            <TouchableOpacity
-              style={styles.headerIconButton}
-              onPress={() => router.push("/customer-profile")}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.headerIconText}>👤</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -354,7 +329,7 @@ export default function CustomerHome() {
               {/* Hero Banner */}
               {!searchQuery.trim() && (
                 <View style={styles.heroBanner}>
-                  <Text style={styles.heroTag}>⚡ Direct From Store</Text>
+                  <Text style={styles.heroTag}>⚡ DIRECT FROM STORE</Text>
                   <Text style={styles.heroTitle}>Fresh Groceries,</Text>
                   <Text style={styles.heroTitle}>Real-Time Live Stock.</Text>
                   <Text style={styles.heroSubtitle}>
@@ -425,7 +400,7 @@ export default function CustomerHome() {
                   const qty = cart[product._id] || 0;
                   const stockQuantity = Number(product.stockQuantity) || 0;
                   const isOutOfStock = !product.inStock || stockQuantity <= 0;
-                  const imageUrl = getImageUrl(product.image);
+                  const imageUrl = getImageUrl(product);
 
                   return (
                     <TouchableOpacity
@@ -561,7 +536,7 @@ export default function CustomerHome() {
           </View>
         ) : null}
 
-        {/* Bottom Navigation */}
+        {/* Bottom Navigation: 4 clean items (Home, Cart, Feedback, Profile) */}
         <View style={styles.bottomNavigation}>
           <TouchableOpacity style={styles.navItem}>
             <Text style={styles.navIcon}>🏠</Text>
@@ -579,14 +554,6 @@ export default function CustomerHome() {
                 <Text style={styles.navBadgeText}>{cartItemCount}</Text>
               </View>
             ) : null}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.push("/order-history")}
-          >
-            <Text style={styles.navIcon}>📦</Text>
-            <Text style={styles.navText}>My Orders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -632,9 +599,9 @@ export default function CustomerHome() {
 
                   {/* Product Image */}
                   <View style={styles.modalImageWrapper}>
-                    {getImageUrl(selectedProduct.image) ? (
+                    {getImageUrl(selectedProduct) ? (
                       <Image
-                        source={{ uri: getImageUrl(selectedProduct.image) }}
+                        source={{ uri: getImageUrl(selectedProduct) }}
                         style={styles.modalImage}
                         resizeMode="cover"
                       />
@@ -659,7 +626,13 @@ export default function CustomerHome() {
 
                   <Text style={styles.modalPriceTag}>
                     Rs. {Number(selectedProduct.price).toFixed(2)}{" "}
-                    <Text style={{ fontSize: 13, color: "#64748B", fontWeight: "normal" }}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: "#64748B",
+                        fontWeight: "normal",
+                      }}
+                    >
                       per {selectedProduct.unit}
                     </Text>
                   </Text>
@@ -754,7 +727,9 @@ export default function CustomerHome() {
                       }}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.modalGoToCartText}>Cart ({cartItemCount})</Text>
+                      <Text style={styles.modalGoToCartText}>
+                        Cart ({cartItemCount})
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </ScrollView>

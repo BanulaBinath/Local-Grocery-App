@@ -14,6 +14,10 @@ import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
 import {
+  SAMPLE_PRODUCTS,
+  resolveProductImageUrl,
+} from "../../constants/sampleProducts";
+import {
   clearCart,
   getCart,
   removeCartItem,
@@ -22,7 +26,7 @@ import {
 import styles from "./CustomerCart.styles";
 
 export default function CustomerCart() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(SAMPLE_PRODUCTS);
   const [cart, setCart] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -30,16 +34,29 @@ export default function CustomerCart() {
     try {
       // 1. Fetch live products from backend
       const res = await fetch(`${API_URL}/api/shop-products`);
+      let baseList = SAMPLE_PRODUCTS;
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || []);
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          baseList = data.products;
+        }
       }
+
+      // Combine with sample products so items in cart always resolve
+      const merged = [...baseList];
+      for (const sp of SAMPLE_PRODUCTS) {
+        if (!merged.some((p) => p._id === sp._id)) {
+          merged.push(sp);
+        }
+      }
+      setProducts(merged);
 
       // 2. Fetch saved cart from storage
       const savedCart = await getCart();
       setCart(savedCart);
     } catch (e) {
       console.log("Error fetching cart data:", e);
+      setProducts(SAMPLE_PRODUCTS);
     } finally {
       setLoading(false);
     }
@@ -51,14 +68,7 @@ export default function CustomerCart() {
     }, []),
   );
 
-  const getImageUrl = (image) => {
-    if (!image) return null;
-    if (image.startsWith("file://")) return null;
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      return image;
-    }
-    return `${API_URL}${image.startsWith("/") ? image : `/${image}`}`;
-  };
+  const getImageUrl = (product) => resolveProductImageUrl(product);
 
   const getProductIcon = (product) => {
     const pCat = (product?.category || "").toLowerCase();
@@ -194,7 +204,7 @@ export default function CustomerCart() {
               showsVerticalScrollIndicator={false}
             >
               {cartItems.map(({ product, quantity }) => {
-                const imageUrl = getImageUrl(product.image);
+                const imageUrl = getImageUrl(product);
                 const stockQty = Number(product.stockQuantity) || 0;
 
                 return (

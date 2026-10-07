@@ -207,24 +207,6 @@ export default function CustomerProfile() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Notifications */}
-        <TouchableOpacity
-          style={styles.ordersButton}
-          onPress={() => router.push("/customer-notifications")}
-        >
-          <View style={styles.ordersLeft}>
-            <Text style={styles.ordersIcon}>🔔</Text>
-
-            <View>
-              <Text style={styles.ordersTitle}>Order Notifications</Text>
-
-              <Text style={styles.ordersSubtitle}>Status updates & store alerts</Text>
-            </View>
-          </View>
-
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
         {/* Feedback & Reviews */}
         <TouchableOpacity
           style={styles.ordersButton}
