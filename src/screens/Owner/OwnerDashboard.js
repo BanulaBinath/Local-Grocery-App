@@ -72,6 +72,10 @@ export default function OwnerDashboard() {
     router.push("/owner-orders");
   };
 
+  const handleInventory = () => {
+    router.push("/owner-inventory");
+  };
+
   const handleReports = () => {
     router.push("/owner-sales-report");
   };
@@ -215,6 +219,21 @@ export default function OwnerDashboard() {
 
               <Text style={styles.cardDescription}>
                 View and filter customer orders by status.
+              </Text>
+            </View>
+
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+
+          {/* INVENTORY */}
+          <TouchableOpacity style={styles.card} onPress={handleInventory}>
+            <Text style={styles.cardIcon}>🧾</Text>
+
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>Inventory</Text>
+
+              <Text style={styles.cardDescription}>
+                Monitor product stock and low-stock items across suppliers.
               </Text>
             </View>
 

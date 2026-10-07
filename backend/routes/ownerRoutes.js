@@ -11,6 +11,7 @@ const SupplierStaff = require("../models/SupplierStaff");
 const SupplyOrder = require("../models/SupplyOrder");
 const Customer = require("../models/Customer");
 const StoreSetting = require("../models/StoreSetting");
+const Product = require("../models/Product");
 
 const router = express.Router();
 
@@ -591,6 +592,26 @@ router.get("/orders", async (req, res) => {
 
     res.status(500).json({
       message: "Server error. Could not load orders.",
+    });
+  }
+});
+
+// ========================================
+// INVENTORY
+// ========================================
+
+router.get("/inventory", async (req, res) => {
+  try {
+    const products = await Product.find()
+      .populate("supplierId", "fullName businessName")
+      .sort({ stockQuantity: 1, name: 1 });
+
+    res.status(200).json({ products });
+  } catch (error) {
+    console.error("Get owner inventory error:", error);
+
+    res.status(500).json({
+      message: "Server error. Could not load inventory.",
     });
   }
 });
