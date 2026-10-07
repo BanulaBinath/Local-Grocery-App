@@ -934,5 +934,187 @@ export default StyleSheet.create({
     fontWeight: "800",
     color: PRIMARY,
   },
+
+  // ── Dashboard Home ──────────────────────────────────────────
+
+  dashboardBody: {
+    padding: 16,
+    paddingBottom: 110,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginTop: 16,
+    marginBottom: 10,
+  },
+
+  // Metric Cards Row
+  metricsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 4,
+  },
+
+  metricsRowScroll: {
+    flexDirection: "row",
+    gap: 10,
+    paddingRight: 16,
+    marginBottom: 4,
+  },
+
+  metricCard: {
+    minWidth: 92,
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    borderWidth: 1,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  metricCardNew: {
+    backgroundColor: "#FEF9C3",
+    borderColor: "#FDE047",
+  },
+
+  metricCardAccepted: {
+    backgroundColor: "#E0F2FE",
+    borderColor: "#BAE6FD",
+  },
+
+  metricCardPreparing: {
+    backgroundColor: "#FEF3C7",
+    borderColor: "#FDE68A",
+  },
+
+  metricCardReady: {
+    backgroundColor: "#DCFCE7",
+    borderColor: "#86EFAC",
+  },
+
+  metricCardCompleted: {
+    backgroundColor: "#F1F5F9",
+    borderColor: "#CBD5E1",
+  },
+
+  metricIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+
+  metricValue: {
+    fontSize: 26,
+    fontWeight: "900",
+    lineHeight: 30,
+  },
+
+  metricValueNew: {
+    color: "#854D0E",
+  },
+
+  metricValueAccepted: {
+    color: "#0369A1",
+  },
+
+  metricValuePreparing: {
+    color: "#B45309",
+  },
+
+  metricValueReady: {
+    color: "#15803D",
+  },
+
+  metricValueCompleted: {
+    color: "#475569",
+  },
+
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#475569",
+    marginTop: 2,
+    textAlign: "center",
+  },
+
+  // Recent Orders Section
+  recentHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 2,
+  },
+
+  viewAllButton: {
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: PRIMARY_BORDER,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PRIMARY,
+  },
+
+  // Recent Order Card (compact variant)
+  recentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+
+  recentCardMeta: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+
+  // Go-To-Orders Banner
+  goToOrdersBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginTop: 6,
+    shadowColor: PRIMARY,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  goToOrdersText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  goToOrdersArrow: {
+    fontSize: 18,
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
 });
 

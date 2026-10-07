@@ -451,7 +451,7 @@ export default function CustomerStaffInventory() {
           )}
         </ScrollView>
 
-        {/* 5-Tab Bottom Navigation Bar */}
+        {/* 4-Tab Bottom Navigation Bar */}
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={styles.navItem}
@@ -464,14 +464,6 @@ export default function CustomerStaffInventory() {
           <TouchableOpacity style={styles.navItem}>
             <Text style={styles.navIcon}>📦</Text>
             <Text style={styles.navLabelActive}>Inventory</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.replace("/customer-staff-orders")}
-          >
-            <Text style={styles.navIcon}>📋</Text>
-            <Text style={styles.navLabel}>Orders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

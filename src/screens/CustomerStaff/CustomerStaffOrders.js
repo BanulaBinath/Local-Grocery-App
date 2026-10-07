@@ -228,13 +228,19 @@ export default function CustomerStaffOrders() {
     { key: "cancelled", label: "Cancelled" },
   ];
 
-  // Client-side search filter safety
+  // Client-side search filter safety & Priority Sorting (New Orders prioritized at top)
   const filteredOrders = orders.filter((order) => {
     if (!search.trim()) return true;
     const term = search.toLowerCase();
     const orderNum = String(order.orderNumber || "");
     const custName = (order.customerName || "").toLowerCase();
     return orderNum.includes(term) || custName.includes(term);
+  });
+
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    if (a.status === "pending" && b.status !== "pending") return -1;
+    if (a.status !== "pending" && b.status === "pending") return 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
   // History Orders (Completed & Cancelled orders)
@@ -282,15 +288,6 @@ export default function CustomerStaffOrders() {
             <View>
               <Text style={styles.headerTitle}>Order Management</Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.historyIconButton}
-              onPress={() => setHistoryVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.historyIcon}>📜</Text>
-              <Text style={styles.historyBtnText}>History</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Search Box */}
@@ -352,7 +349,7 @@ export default function CustomerStaffOrders() {
             />
           }
         >
-          {filteredOrders.length === 0 ? (
+          {sortedOrders.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📋</Text>
               <Text style={styles.emptyTitle}>No Orders Found</Text>
@@ -361,7 +358,7 @@ export default function CustomerStaffOrders() {
               </Text>
             </View>
           ) : (
-            filteredOrders.map((order) => {
+            sortedOrders.map((order) => {
               const firstItem = order.items?.[0];
               const imageUrl = getImageUrl(firstItem?.productImage);
               const itemCount = order.items?.length || 0;
@@ -474,7 +471,7 @@ export default function CustomerStaffOrders() {
           )}
         </ScrollView>
 
-        {/* 5-Tab Bottom Navigation */}
+        {/* Bottom Navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={styles.navItem}
@@ -490,11 +487,6 @@ export default function CustomerStaffOrders() {
           >
             <Text style={styles.navIcon}>📦</Text>
             <Text style={styles.navLabel}>Inventory</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>📋</Text>
-            <Text style={styles.navLabelActive}>Orders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

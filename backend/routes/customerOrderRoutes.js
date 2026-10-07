@@ -4,6 +4,7 @@ const CustomerOrder = require("../models/CustomerOrder");
 const Customer = require("../models/Customer");
 const ShopProduct = require("../models/ShopProduct");
 const CustomerStaff = require("../models/CustomerStaff");
+const Message = require("../models/Message");
 
 const router = express.Router();
 
@@ -305,6 +306,42 @@ router.put("/:orderId/status", async (req, res) => {
     });
 
     await order.save();
+
+    // ── Auto-send message to customer ──────────────────────────────────
+    try {
+      let staffSenderId = staffId || (order.handledBy ? order.handledBy.toString() : null);
+      if (!staffSenderId) {
+        const staffDoc = await CustomerStaff.findOne();
+        if (staffDoc) staffSenderId = staffDoc._id.toString();
+      }
+
+      const custId = order.customerId ? (order.customerId._id || order.customerId).toString() : null;
+
+      if (staffSenderId && custId) {
+        let autoMessage = null;
+
+        if (status === "cancelled") {
+          const reason = String(cancelReason || "No specific reason provided").trim();
+          autoMessage = `Your Order #${order.orderNumber} has been rejected. Reason: ${reason}`;
+        } else if (status === "ready") {
+          autoMessage = `Great news! Your Order #${order.orderNumber} is ready for pickup. Please come collect it at your earliest convenience.`;
+        }
+
+        if (autoMessage) {
+          const msg = new Message({
+            senderId: staffSenderId,
+            senderRole: "customer_staff",
+            receiverId: custId,
+            receiverRole: "customer",
+            message: autoMessage,
+          });
+          await msg.save();
+        }
+      }
+    } catch (msgErr) {
+      console.error("Auto-message send error (non-fatal):", msgErr);
+    }
+    // ───────────────────────────────────────────────────────────────────
 
     const updatedOrder = await CustomerOrder.findById(order._id)
       .populate("customerId", "fullName email address")
