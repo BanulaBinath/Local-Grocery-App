@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
+import { SAMPLE_PRODUCTS } from "../../constants/sampleProducts";
 import { clearCart, getCart } from "../../utils/cartStorage";
 import styles from "./CustomerCheckout.styles";
 
@@ -96,14 +97,29 @@ export default function CustomerCheckout() {
         setCustomerPhone(parsed.phoneNumber || parsed.phone || "");
       }
 
-      // 2. Load products
-      const pRes = await fetch(`${API_URL}/api/shop-products`);
-      if (pRes.ok) {
-        const pData = await pRes.json();
-        setProducts(pData.products || []);
+      // 2. Load live products and include the same fallback products as the cart.
+      let availableProducts = SAMPLE_PRODUCTS;
+      try {
+        const pRes = await fetch(`${API_URL}/api/shop-products`);
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (Array.isArray(pData.products) && pData.products.length > 0) {
+            availableProducts = pData.products;
+          }
+        }
+      } catch (error) {
+        console.log("Error loading checkout products:", error);
       }
 
-      // 3. Load cart
+      const mergedProducts = [...availableProducts];
+      for (const sampleProduct of SAMPLE_PRODUCTS) {
+        if (!mergedProducts.some((product) => product._id === sampleProduct._id)) {
+          mergedProducts.push(sampleProduct);
+        }
+      }
+      setProducts(mergedProducts);
+
+      // 3. Load cart after products, so every saved item can be resolved.
       const currentCart = await getCart();
       setCart(currentCart);
 
