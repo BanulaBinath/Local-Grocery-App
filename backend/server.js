@@ -34,7 +34,9 @@ const app = express();
 
 app.use(cors());
 
-app.use(express.json());
+// Increase limit to 20mb to support base64 image uploads
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 // ========================================
 // UPLOADED FILES

@@ -6,6 +6,7 @@ const Customer = require("../models/Customer");
 const ShopProduct = require("../models/ShopProduct");
 const CustomerStaff = require("../models/CustomerStaff");
 const Notification = require("../models/Notification");
+const Message = require("../models/Message");
 
 const router = express.Router();
 
@@ -424,45 +425,97 @@ router.put("/:orderId/status", async (req, res) => {
 
     await order.save();
 
-    // Create Customer Notification
-    try {
-      let title = `Order #${order.orderNumber} Status Updated`;
-      let message = `Your order status changed to ${status}.`;
-      let notifType = "general";
+// Create Customer Notification
+try {
+  let title = `Order #${order.orderNumber} Status Updated`;
+  let message = `Your order status changed to ${status}.`;
+  let notifType = "general";
 
-      if (status === "accepted") {
-        title = `Order #${order.orderNumber} Confirmed! ✅`;
-        message = `Staff has accepted your order! Scheduled pickup: ${order.pickupDate || 'Today'}${order.pickupTime ? ` at ${order.pickupTime}` : ''}.`;
-        notifType = "order_accepted";
-      } else if (status === "cancelled") {
-        title = `Order #${order.orderNumber} Rejected ❌`;
-        message = `Your order was rejected by staff. Reason: ${order.cancelReason || 'Item unavailable'}.`;
-        notifType = "order_rejected";
-      } else if (status === "preparing") {
-        title = `Order #${order.orderNumber} is Preparing 🧺`;
-        message = `Staff is currently packing your grocery items.`;
-        notifType = "order_ready";
-      } else if (status === "ready") {
-        title = `Order #${order.orderNumber} Ready for Pickup! 🛍️`;
-        message = `Your order is ready! Please proceed to ${order.pickupLocation || 'the store pickup counter'}.`;
-        notifType = "order_ready";
-      } else if (status === "completed") {
-        title = `Order #${order.orderNumber} Completed 🎉`;
-        message = `Your order has been completed. Thank you for shopping with us! Please share your feedback.`;
-        notifType = "order_completed";
-      }
+  if (status === "accepted") {
+    title = `Order #${order.orderNumber} Confirmed! ✅`;
+    message = `Staff has accepted your order! Scheduled pickup: ${
+      order.pickupDate || "Today"
+    }${order.pickupTime ? ` at ${order.pickupTime}` : ""}.`;
+    notifType = "order_accepted";
+  } else if (status === "cancelled") {
+    title = `Order #${order.orderNumber} Rejected ❌`;
+    message = `Your order was rejected by staff. Reason: ${
+      order.cancelReason || "Item unavailable"
+    }.`;
+    notifType = "order_rejected";
+  } else if (status === "preparing") {
+    title = `Order #${order.orderNumber} is Preparing 🧺`;
+    message = `Staff is currently packing your grocery items.`;
+    notifType = "order_ready";
+  } else if (status === "ready") {
+    title = `Order #${order.orderNumber} Ready for Pickup! 🛍️`;
+    message = `Your order is ready! Please proceed to ${
+      order.pickupLocation || "the store pickup counter"
+    }.`;
+    notifType = "order_ready";
+  } else if (status === "completed") {
+    title = `Order #${order.orderNumber} Completed 🎉`;
+    message = `Your order has been completed. Thank you for shopping with us! Please share your feedback.`;
+    notifType = "order_completed";
+  }
 
-      await Notification.create({
-        customerId: order.customerId,
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        title,
-        message,
-        type: notifType,
-      });
-    } catch (notifErr) {
-      console.log("Error creating status notification:", notifErr.message);
+  await Notification.create({
+    customerId: order.customerId,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    title,
+    message,
+    type: notifType,
+  });
+} catch (notifErr) {
+  console.log("Error creating status notification:", notifErr.message);
+}
+
+// Auto-send message to customer
+try {
+  let staffSenderId =
+    staffId || (order.handledBy ? order.handledBy.toString() : null);
+
+  if (!staffSenderId) {
+    const staffDoc = await CustomerStaff.findOne();
+
+    if (staffDoc) {
+      staffSenderId = staffDoc._id.toString();
     }
+  }
+
+  const custId = order.customerId
+    ? (order.customerId._id || order.customerId).toString()
+    : null;
+
+  if (staffSenderId && custId) {
+    let autoMessage = null;
+
+    if (status === "cancelled") {
+      const reason = String(
+        cancelReason || "No specific reason provided"
+      ).trim();
+
+      autoMessage = `Your Order #${order.orderNumber} has been rejected. Reason: ${reason}`;
+    } else if (status === "ready") {
+      autoMessage = `Great news! Your Order #${order.orderNumber} is ready for pickup. Please come collect it at your earliest convenience.`;
+    }
+
+    if (autoMessage) {
+      const msg = new Message({
+        senderId: staffSenderId,
+        senderRole: "customer_staff",
+        receiverId: custId,
+        receiverRole: "customer",
+        message: autoMessage,
+      });
+
+      await msg.save();
+    }
+  }
+} catch (msgErr) {
+  console.error("Auto-message send error (non-fatal):", msgErr);
+}
 
     const updatedOrder = await CustomerOrder.findById(order._id)
       .populate("customerId", "fullName email address")

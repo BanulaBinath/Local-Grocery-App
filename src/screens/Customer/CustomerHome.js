@@ -4,14 +4,13 @@ import {
   Alert,
   Image,
   Modal,
-  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -127,15 +126,69 @@ export default function CustomerHome() {
     }, []),
   );
 
-  const getImageUrl = (product) => resolveProductImageUrl(product);
+
+  const getImageUrl = (product) => {
+    // Use the project's standard image resolver first
+    const resolvedUrl = resolveProductImageUrl(product);
+
+    if (resolvedUrl) {
+      return resolvedUrl;
+    }
+
+    // Fallback for staff-added products with relative image paths
+    if (product?.image && !product.image.startsWith("file://")) {
+      if (
+        product.image.startsWith("http://") ||
+        product.image.startsWith("https://")
+      ) {
+        return product.image;
+      }
+
+      return `${API_URL}${
+        product.image.startsWith("/") ? product.image : `/${product.image}`
+      }`;
+    }
+
+    // Fallback images
+    const name = (product?.name || "").toLowerCase();
+
+    if (name.includes("banana")) {
+      return "https://images.unsplash.com/photo-1571501478200-720615709ee0?auto=format&fit=crop&w=200&q=80";
+    }
+
+    if (product?.category === "Vegetables") {
+      return "https://images.unsplash.com/photo-1566385101042-1a0e10ccff12?auto=format&fit=crop&w=200&q=80";
+    }
+
+    if (product?.category === "Fruits") {
+      return "https://images.unsplash.com/photo-1610832958506-aa56368149eb?auto=format&fit=crop&w=200&q=80";
+    }
+
+    if (product?.category === "Grains") {
+      return "https://images.unsplash.com/photo-1586201375761-83865001e8aa?auto=format&fit=crop&w=200&q=80";
+    }
+
+    if (product?.category === "Spices") {
+      return "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=200&q=80";
+    }
+
+    return null;
+  };
 
   const getProductIcon = (product) => {
     const pCat = (product?.category || "").toLowerCase();
+
     if (pCat.includes("veg")) return "🥬";
     if (pCat.includes("fruit")) return "🍎";
     if (pCat.includes("spice")) return "🌶️";
     if (pCat.includes("dairy")) return "🥛";
+
     return "🛒";
+  };
+
+  const handleProfile = () => {
+    router.push("/customer-profile");
+  };
   };
 
   // Update Cart Quantity
@@ -414,14 +467,15 @@ export default function CustomerHome() {
                         style={[
                           styles.cardLeft,
                           isOutOfStock && styles.cardLeftDisabled,
+                          { overflow: 'hidden' }
                         ]}
                       >
-                        {imageUrl ? (
-                          <Image
-                            source={{ uri: imageUrl }}
-                            style={styles.productThumbImage}
-                            resizeMode="cover"
-                          />
+{imageUrl ? (
+  <Image
+    source={{ uri: imageUrl }}
+    style={styles.productThumbImage}
+    resizeMode="cover"
+  />
                         ) : (
                           <Text style={styles.productIcon}>
                             {getProductIcon(product)}
@@ -740,4 +794,5 @@ export default function CustomerHome() {
       </View>
     </SafeAreaView>
   );
-}
+
+  

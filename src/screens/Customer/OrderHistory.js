@@ -1,11 +1,16 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,6 +44,14 @@ export default function OrderHistory() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [customer, setCustomer] = useState(null);
+
+  // Messaging modal state
+  const [messagesModalVisible, setMessagesModalVisible] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [inputMsg, setInputMsg] = useState("");
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const chatListRef = useRef(null);
 
   const getStatusLabel = (status) => {
     switch (status) {
@@ -88,12 +101,14 @@ export default function OrderHistory() {
         return;
       }
 
-      const customer = JSON.parse(customerData);
-      const customerId = customer._id || customer.id;
+const cust = JSON.parse(customerData);
+setCustomer(cust);
 
-      const response = await fetch(
-        `${API_URL}/api/customer-orders/customer/${customerId}`,
-      );
+const customerId = cust._id || cust.id;
+
+const response = await fetch(
+  `${API_URL}/api/customer-orders/customer/${customerId}`,
+);
       const data = await response.json();
 
       if (response.ok) {
@@ -107,6 +122,62 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    if (!customer?.id) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/messages/customer-thread?customerId=${customer.id}`,
+      );
+      const data = await res.json();
+      if (res.ok && data.messages) {
+        setMessages(data.messages);
+      }
+    } catch (err) {
+      console.log("Fetch customer messages error:", err);
+    }
+  };
+
+  const openMessagesModal = () => {
+    setMessagesModalVisible(true);
+    setLoadingMsgs(true);
+    fetchMessages().finally(() => setLoadingMsgs(false));
+  };
+
+  useEffect(() => {
+    let interval;
+    if (messagesModalVisible && customer?.id) {
+      interval = setInterval(() => {
+        fetchMessages();
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [messagesModalVisible, customer]);
+
+  const sendMessageToStaff = async () => {
+    if (!inputMsg.trim() || !customer?.id) return;
+
+    const textToSend = inputMsg.trim();
+    setInputMsg("");
+
+    try {
+      await fetch(`${API_URL}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderId: customer.id,
+          senderRole: "customer",
+          receiverId: "650000000000000000000001",
+          receiverRole: "customer_staff",
+          message: textToSend,
+        }),
+      });
+
+      fetchMessages();
+    } catch (err) {
+      console.log("Send customer message error:", err);
     }
   };
 
@@ -174,7 +245,22 @@ export default function OrderHistory() {
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Orders</Text>
-          <View style={styles.headerSpace} />
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#EFF6FF",
+              borderColor: "#BFDBFE",
+              borderWidth: 1,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+            }}
+            onPress={openMessagesModal}
+          >
+            <Text style={{ fontSize: 12, fontWeight: "700", color: "#1D4ED8" }}>
+              💬 Messages
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 4 Tabs: All, Pending, Confirm, Rejected */}
@@ -288,65 +374,70 @@ export default function OrderHistory() {
                       : "Recently"}
                   </Text>
 
-                  {/* Pickup Details Box */}
-                  {(order.pickupDate || order.pickupTime || order.pickupLocation) && (
-                    <View style={styles.pickupBox}>
-                      <View style={styles.pickupRow}>
-                        <Text style={styles.pickupText}>
-                          📅 Scheduled: {order.pickupDate || "Standard"} {order.pickupTime ? `• ⏰ ${order.pickupTime}` : ""}
-                        </Text>
-                      </View>
-                      {order.pickupLocation ? (
-                        <View style={styles.pickupRow}>
-                          <Text style={styles.pickupText}>
-                            📍 Location: {order.pickupLocation}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  )}
+{/* Pickup Details Box */}
+{(order.pickupDate || order.pickupTime || order.pickupLocation) && (
+  <View style={styles.pickupBox}>
+    <View style={styles.pickupRow}>
+      <Text style={styles.pickupText}>
+        📅 Scheduled: {order.pickupDate || "Standard"}
+        {order.pickupTime ? ` • ⏰ ${order.pickupTime}` : ""}
+      </Text>
+    </View>
 
-                  {/* Rejection Note or Progress Stepper */}
-                  {isRejected ? (
-                    <View style={styles.rejectBox}>
-                      <Text style={styles.rejectTitle}>
-                        ⚠️ Order Rejected by Staff
-                      </Text>
-                      <Text style={styles.rejectReason}>
-                        Reason: {order.cancelReason || "Store was unable to fulfill this order at this time."}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.stepperRow}>
-                      {STEPS.map((label, index) => {
-                        const done = index <= currentStep;
-                        return (
-                          <View key={label} style={styles.stepDot}>
-                            <View
-                              style={[
-                                styles.stepCircle,
-                                done && styles.stepCircleActive,
-                              ]}
-                            >
-                              {done ? (
-                                <Text style={styles.stepCheck}>✓</Text>
-                              ) : null}
-                            </View>
-                            <Text
-                              style={[
-                                styles.stepLabel,
-                                done && styles.stepLabelActive,
-                              ]}
-                            >
-                              {label}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
+    {order.pickupLocation ? (
+      <View style={styles.pickupRow}>
+        <Text style={styles.pickupText}>
+          📍 Location: {order.pickupLocation}
+        </Text>
+      </View>
+    ) : null}
+  </View>
+)}
 
-                  {/* Items List */}
+{/* Rejection Note or Progress Stepper */}
+{isRejected ? (
+  <View style={styles.rejectBox}>
+    <Text style={styles.rejectTitle}>
+      ⚠️ Order Rejected by Staff
+    </Text>
+
+    <Text style={styles.rejectReason}>
+      Reason:{" "}
+      {order.cancelReason ||
+        "Store was unable to fulfill this order at this time."}
+    </Text>
+  </View>
+) : (
+  <View style={styles.stepperRow}>
+    {STEPS.map((label, index) => {
+      const done = index <= currentStep;
+
+      return (
+        <View key={label} style={styles.stepDot}>
+          <View
+            style={[
+              styles.stepCircle,
+              done && styles.stepCircleActive,
+            ]}
+          >
+            {done ? (
+              <Text style={styles.stepCheck}>✓</Text>
+            ) : null}
+          </View>
+
+          <Text
+            style={[
+              styles.stepLabel,
+              done && styles.stepLabelActive,
+            ]}
+          >
+            {label}
+          </Text>
+        </View>
+      );
+    })}
+  </View>
+)}
                   <View style={styles.itemsSummaryBox}>
                     <Text style={styles.itemSummaryText}>
                       <Text style={{ fontWeight: "700" }}>Items: </Text>
@@ -386,7 +477,194 @@ export default function OrderHistory() {
             })
           )}
         </ScrollView>
+
+        {/* ── Customer Messages Modal ── */}
+        <Modal
+          visible={messagesModalVisible}
+          animationType="slide"
+          onRequestClose={() => setMessagesModalVisible(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
+              {/* Modal Header */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 16,
+                  backgroundColor: "#FFFFFF",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#E2E8F0",
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setMessagesModalVisible(false)}
+                  style={{ padding: 4 }}
+                >
+                  <Text style={{ fontSize: 18, color: "#1E3A8A", fontWeight: "700" }}>
+                    ✕ Close
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={{ fontSize: 16, fontWeight: "800", color: "#0F172A" }}
+                >
+                  Staff Messages
+                </Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              {/* Chat Messages List */}
+              {loadingMsgs ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <ActivityIndicator size="large" color="#1E3A8A" />
+                </View>
+              ) : messages.length === 0 ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    padding: 24,
+                  }}
+                >
+                  <Text style={{ fontSize: 36, marginBottom: 8 }}>💬</Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: "#1E293B",
+                    }}
+                  >
+                    No Messages Yet
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: "#64748B",
+                      textAlign: "center",
+                      marginTop: 4,
+                    }}
+                  >
+                    Notifications or messages from staff regarding your orders
+                    will appear here.
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  ref={chatListRef}
+                  data={messages}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={{ padding: 16 }}
+                  onContentSizeChange={() =>
+                    chatListRef.current?.scrollToEnd({ animated: true })
+                  }
+                  renderItem={({ item }) => (
+                    <View
+                      style={{
+                        alignSelf: item.fromStaff ? "flex-start" : "flex-end",
+                        backgroundColor: item.fromStaff ? "#F1F5F9" : "#1E3A8A",
+                        borderRadius: 14,
+                        padding: 12,
+                        marginBottom: 10,
+                        maxWidth: "82%",
+                        borderWidth: item.fromStaff ? 1 : 0,
+                        borderColor: "#CBD5E1",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "700",
+                          color: item.fromStaff ? "#1E293B" : "#93C5FD",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {item.fromStaff ? "Customer Staff" : "You"}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: item.fromStaff ? "#0F172A" : "#FFFFFF",
+                          lineHeight: 20,
+                        }}
+                      >
+                        {item.text}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: item.fromStaff ? "#64748B" : "#DBEAFE",
+                          alignSelf: "flex-end",
+                          marginTop: 4,
+                        }}
+                      >
+                        {item.time}
+                      </Text>
+                    </View>
+                  )}
+                />
+              )}
+
+              {/* Message Input Bar */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  padding: 12,
+                  backgroundColor: "#FFFFFF",
+                  borderTopWidth: 1,
+                  borderTopColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <TextInput
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#F1F5F9",
+                    borderRadius: 20,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: "#0F172A",
+                    maxHeight: 100,
+                  }}
+                  placeholder="Reply to store staff..."
+                  placeholderTextColor="#94A3B8"
+                  value={inputMsg}
+                  onChangeText={setInputMsg}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#1E3A8A",
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginLeft: 8,
+                  }}
+                  onPress={sendMessageToStaff}
+                >
+                  <Text style={{ color: "#FFFFFF", fontWeight: "800", fontSize: 16 }}>
+                    ➤
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </Modal>
       </View>
     </SafeAreaView>
   );
 }
+
