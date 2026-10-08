@@ -189,7 +189,6 @@ export default function CustomerHome() {
   const handleProfile = () => {
     router.push("/customer-profile");
   };
-  };
 
   // Update Cart Quantity
   const handleUpdateQty = async (product, delta) => {
