@@ -236,7 +236,12 @@ export default function Login() {
           {/* Customer Feedback for Visitors and Customers */}
           <TouchableOpacity
             style={styles.feedbackCard}
-            onPress={() => router.push("/customer-feedbacks")}
+            onPress={() =>
+              router.push({
+                pathname: "/customer-feedbacks",
+                params: { readOnly: "true" },
+              })
+            }
             activeOpacity={0.85}
           >
             <Text style={styles.feedbackIcon}>⭐</Text>

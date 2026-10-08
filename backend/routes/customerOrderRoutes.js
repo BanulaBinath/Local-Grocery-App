@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 
 const CustomerOrder = require("../models/CustomerOrder");
 const Customer = require("../models/Customer");
@@ -15,6 +16,92 @@ const ALLOWED_TRANSITIONS = {
   ready: ["completed"],
   completed: [],
   cancelled: [],
+};
+
+const FALLBACK_PRODUCTS = {
+  "sample-carrot-1": {
+    name: "Fresh Organic Carrots",
+    category: "Vegetables",
+    price: 240,
+    stockQuantity: 35,
+    unit: "kg",
+  },
+  "sample-tomato-2": {
+    name: "Red Ripe Tomatoes",
+    category: "Vegetables",
+    price: 350,
+    stockQuantity: 40,
+    unit: "kg",
+  },
+  "sample-apple-3": {
+    name: "Crisp Royal Gala Apples",
+    category: "Fruits",
+    price: 650,
+    stockQuantity: 25,
+    unit: "kg",
+  },
+  "sample-banana-4": {
+    name: "Fresh Cavendish Bananas",
+    category: "Fruits",
+    price: 220,
+    stockQuantity: 30,
+    unit: "bunch",
+  },
+  "sample-milk-5": {
+    name: "Fresh Pasteurized Cow Milk (1L)",
+    category: "Grocery",
+    price: 450,
+    stockQuantity: 20,
+    unit: "bottle",
+  },
+  "sample-onion-6": {
+    name: "Big Red Onions",
+    category: "Vegetables",
+    price: 280,
+    stockQuantity: 50,
+    unit: "kg",
+  },
+  "sample-pepper-7": {
+    name: "Green Bell Pepper (Capsicum)",
+    category: "Vegetables",
+    price: 420,
+    stockQuantity: 15,
+    unit: "pack",
+  },
+  "sample-chili-8": {
+    name: "Ceylon Pure Chili Powder (250g)",
+    category: "Spices",
+    price: 380,
+    stockQuantity: 25,
+    unit: "pack",
+  },
+  "sample-rice-9": {
+    name: "Premium White Rice (5kg)",
+    category: "Grocery",
+    price: 1100,
+    stockQuantity: 12,
+    unit: "bag",
+  },
+};
+
+const resolveOrderProduct = async (productId) => {
+  if (mongoose.isValidObjectId(productId)) {
+    return ShopProduct.findById(productId);
+  }
+
+  const fallbackProduct = FALLBACK_PRODUCTS[String(productId)];
+  if (!fallbackProduct) {
+    return null;
+  }
+
+  const existingProduct = await ShopProduct.findOne({
+    name: fallbackProduct.name,
+  });
+  if (existingProduct) {
+    return existingProduct;
+  }
+
+  return ShopProduct.create(fallbackProduct);
 };
 
 const getNextOrderNumber = async () => {
@@ -63,7 +150,7 @@ router.post("/", async (req, res) => {
     let itemsTotal = 0;
 
     for (const item of items) {
-      const product = await ShopProduct.findById(item.productId);
+      const product = await resolveOrderProduct(item.productId);
 
       if (!product || product.status !== "active") {
         return res.status(400).json({

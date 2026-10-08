@@ -22,6 +22,7 @@ import styles from "./CustomerFeedbacks.styles";
 
 export default function CustomerFeedbacks() {
   const params = useLocalSearchParams();
+  const readOnly = params.readOnly === "true";
   const [customer, setCustomer] = useState(null);
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState({ averageRating: 0, totalReviews: 0 });
@@ -168,7 +169,7 @@ export default function CustomerFeedbacks() {
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Customer Reviews</Text>
-          {customer ? (
+          {customer && !readOnly ? (
             <TouchableOpacity onPress={() => setModalVisible(true)}>
               <Text style={styles.headerAction}>+ Write</Text>
             </TouchableOpacity>
