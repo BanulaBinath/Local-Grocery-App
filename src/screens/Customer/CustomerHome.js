@@ -793,5 +793,5 @@ export default function CustomerHome() {
       </View>
     </SafeAreaView>
   );
-
+}
   
