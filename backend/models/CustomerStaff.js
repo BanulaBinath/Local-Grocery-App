@@ -54,6 +54,22 @@ const customerStaffSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    permissions: {
+      manageCustomerOrders: {
+        type: Boolean,
+        default: true,
+      },
+      managePickups: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   {
     timestamps: true,

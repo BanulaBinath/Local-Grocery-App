@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Image,
     SafeAreaView,
     ScrollView,
     Text,
@@ -14,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { router, useFocusEffect } from "expo-router";
 
+import { API_URL } from "../../constants/api";
 import styles from "./OwnerProfile.styles";
 
 export default function OwnerProfile() {
@@ -73,6 +75,51 @@ export default function OwnerProfile() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    const ownerId = owner?._id || owner?.id;
+    if (!ownerId) {
+      Alert.alert("Error", "Owner ID not found.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete account",
+      "This permanently deletes your owner account. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await fetch(
+                `${API_URL}/api/owners/profile/${ownerId}`,
+                { method: "DELETE" },
+              );
+              const data = await response.json();
+              if (!response.ok) {
+                throw new Error(data.message || "Could not delete account.");
+              }
+
+              await AsyncStorage.multiRemove([
+                "owner",
+                "user",
+                "userRole",
+              ]);
+              router.replace("/login");
+            } catch (error) {
+              console.error("Delete owner account error:", error);
+              Alert.alert(
+                "Delete Failed",
+                error.message || "Could not delete your account.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -104,6 +151,13 @@ export default function OwnerProfile() {
     );
   }
 
+  const profileImage =
+    typeof owner.profileImage === "string" && owner.profileImage
+      ? owner.profileImage.startsWith("/")
+        ? `${API_URL}${owner.profileImage}`
+        : owner.profileImage
+      : null;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -121,11 +175,15 @@ export default function OwnerProfile() {
         </View>
 
         <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(owner.fullName || "O").charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {(owner.fullName || "O").charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.name}>{owner.fullName || "Owner"}</Text>
 
@@ -179,8 +237,22 @@ export default function OwnerProfile() {
         </View>
 
         <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => router.push("/owner-edit-profile")}
+          >
+            <Text style={styles.editButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeleteAccount}
+          >
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -16,6 +16,29 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+3. Start the backend in a separate terminal
+
+   ```bash
+   cd backend
+   npm install
+   node server.js
+   ```
+
+   The backend must be running on port `5000`, and the phone running Expo Go
+   must be connected to the same Wi-Fi network as the development machine.
+   The app currently uses `http://192.168.1.88:5000` by default. If the
+   development machine's LAN address changes, set the address before starting
+   Expo:
+
+   ```powershell
+   $env:EXPO_PUBLIC_API_URL="http://<your-computer-ip>:5000"
+   npx expo start -c
+   ```
+
+   You can verify the backend before opening the app by visiting
+   `http://<your-computer-ip>:5000/`. It should return
+   `{"message":"Local Grocery Backend is running!"}`.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

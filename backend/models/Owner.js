@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const ownerSchema = new mongoose.Schema(
   {
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
     email: {
       type: String,
       required: true,
