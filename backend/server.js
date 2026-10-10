@@ -17,6 +17,8 @@ const productRoutes = require("./routes/productRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const supplyOrderRoutes = require("./routes/supplyOrderRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const shopProductRoutes = require("./routes/shopProductRoutes");
+const customerOrderRoutes = require("./routes/customerOrderRoutes");
 
 // ========================================
 // APP
@@ -30,7 +32,9 @@ const app = express();
 
 app.use(cors());
 
-app.use(express.json());
+// Increase limit to 20mb to support base64 image uploads
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 // ========================================
 // UPLOADED FILES
@@ -57,6 +61,10 @@ app.use("/api/staff", staffRoutes);
 app.use("/api/supply-orders", supplyOrderRoutes);
 
 app.use("/api/messages", messageRoutes);
+
+app.use("/api/shop-products", shopProductRoutes);
+
+app.use("/api/customer-orders", customerOrderRoutes);
 
 // ========================================
 // ROOT ROUTE

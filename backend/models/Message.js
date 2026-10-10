@@ -9,7 +9,7 @@ const messageSchema = new mongoose.Schema(
 
     senderRole: {
       type: String,
-      enum: ["supplier_staff", "supplier"],
+      enum: ["supplier_staff", "supplier", "customer_staff", "customer"],
       required: true,
     },
 
@@ -20,7 +20,7 @@ const messageSchema = new mongoose.Schema(
 
     receiverRole: {
       type: String,
-      enum: ["supplier_staff", "supplier"],
+      enum: ["supplier_staff", "supplier", "customer_staff", "customer"],
       required: true,
     },
 

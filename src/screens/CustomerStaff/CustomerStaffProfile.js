@@ -118,7 +118,13 @@ export default function CustomerStaffProfile() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButtonIcon}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/customer-staff-dashboard");
+              }
+            }}
           >
             <Text style={styles.backButtonIconText}>←</Text>
           </TouchableOpacity>
