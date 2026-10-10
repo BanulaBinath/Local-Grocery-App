@@ -153,6 +153,37 @@ export default function CustomerStaffOrders() {
     setCancelOrderId(null);
   };
 
+  const handleRemoveOrder = (orderId, orderNumber) => {
+    Alert.alert(
+      "Remove Order",
+      `Are you sure you want to remove completed Order #${orderNumber}? This will remove it from the list.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await fetch(`${API_URL}/api/customer-orders/${orderId}`, {
+                method: "DELETE",
+              });
+              if (res.ok) {
+                setOrders((prev) => prev.filter((o) => o._id !== orderId));
+                Alert.alert("Success", `Order #${orderNumber} has been removed.`);
+              } else {
+                const data = await res.json();
+                Alert.alert("Error", data.message || "Failed to remove order.");
+              }
+            } catch (err) {
+              console.log("Remove order error:", err);
+              Alert.alert("Error", "Could not connect to the server.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const formatDate = (value) => {
     if (!value) return "Just now";
     const date = new Date(value);
@@ -219,8 +250,7 @@ export default function CustomerStaffOrders() {
   };
 
   const filters = [
-    { key: "all", label: "All Orders" },
-    { key: "pending", label: "New" },
+    { key: "all", label: "All History" },
     { key: "accepted", label: "Accepted" },
     { key: "preparing", label: "Preparing" },
     { key: "ready", label: "Ready" },
@@ -228,8 +258,9 @@ export default function CustomerStaffOrders() {
     { key: "cancelled", label: "Cancelled" },
   ];
 
-  // Client-side search filter safety & Priority Sorting (New Orders prioritized at top)
+  // Exclude pending (new incoming) orders — they belong only on the Dashboard
   const filteredOrders = orders.filter((order) => {
+    if (order.status === "pending") return false; // never show pending here
     if (!search.trim()) return true;
     const term = search.toLowerCase();
     const orderNum = String(order.orderNumber || "");
@@ -237,11 +268,9 @@ export default function CustomerStaffOrders() {
     return orderNum.includes(term) || custName.includes(term);
   });
 
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (a.status !== "pending" && b.status === "pending") return 1;
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+  const sortedOrders = [...filteredOrders].sort((a, b) =>
+    new Date(b.createdAt) - new Date(a.createdAt)
+  );
 
   // History Orders (Completed & Cancelled orders)
   const historyOrders = orders.filter((order) => {
@@ -287,11 +316,7 @@ export default function CustomerStaffOrders() {
           <View style={styles.headerTopRow}>
             <TouchableOpacity
               onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace("/customer-staff-dashboard");
-                }
+                router.replace("/customer-staff-dashboard");
               }}
               style={{
                 width: 36,
@@ -306,7 +331,8 @@ export default function CustomerStaffOrders() {
               <Text style={{ fontSize: 18, color: "#15803D", fontWeight: "700" }}>←</Text>
             </TouchableOpacity>
             <View>
-              <Text style={styles.headerTitle}>Order Management</Text>
+              <Text style={styles.headerTitle}>Order History</Text>
+              <Text style={styles.headerSubtitle}>View and manage customer orders</Text>
             </View>
           </View>
 
@@ -482,6 +508,16 @@ export default function CustomerStaffOrders() {
                         onPress={() => updateStatus(order._id, "accepted")}
                       >
                         <Text style={styles.acceptButtonText}>✓ Accept</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (order.status === "completed" || order.status === "cancelled") ? (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveOrder(order._id, order.orderNumber)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.removeButtonText}>🗑️ Remove Order</Text>
                       </TouchableOpacity>
                     </View>
                   ) : null}
@@ -782,6 +818,16 @@ export default function CustomerStaffOrders() {
                             Rs. {Number(order.totalAmount).toFixed(2)}
                           </Text>
                         </View>
+
+                        {(order.status === "completed" || order.status === "cancelled") ? (
+                          <TouchableOpacity
+                            style={[styles.removeButton, { marginTop: 8 }]}
+                            onPress={() => handleRemoveOrder(order._id, order.orderNumber)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.removeButtonText}>🗑️ Remove Order</Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </TouchableOpacity>
                     );
                   })

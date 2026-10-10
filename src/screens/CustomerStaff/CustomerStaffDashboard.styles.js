@@ -414,6 +414,23 @@ export default StyleSheet.create({
     fontWeight: "700",
   },
 
+  removeButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#FCA5A5",
+  },
+
+  removeButtonText: {
+    fontSize: 13,
+    color: "#DC2626",
+    fontWeight: "700",
+  },
+
   secondaryButton: {
     flex: 1,
     height: 42,

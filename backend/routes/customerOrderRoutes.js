@@ -360,4 +360,31 @@ router.put("/:orderId/status", async (req, res) => {
   }
 });
 
+// ==================================================
+// DELETE / REMOVE ORDER (Customer Staff)
+// ==================================================
+router.delete("/:orderId", async (req, res) => {
+  try {
+    const order = await CustomerOrder.findById(req.params.orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found.",
+      });
+    }
+
+    await CustomerOrder.findByIdAndDelete(req.params.orderId);
+
+    return res.status(200).json({
+      message: "Order removed successfully.",
+    });
+  } catch (error) {
+    console.error("Delete customer order error:", error);
+
+    return res.status(500).json({
+      message: "Server error. Could not remove order.",
+    });
+  }
+});
+
 module.exports = router;

@@ -34,7 +34,7 @@ export default function CustomerStaffDashboard() {
   };
 
   const handleOrders = () => {
-    router.replace("/customer-staff-orders");
+    router.push("/customer-staff-orders");
   };
 
   const handleProfile = () => {
@@ -382,19 +382,17 @@ export default function CustomerStaffDashboard() {
             })
           )}
 
-          {/* ── "Go to Orders" banner at the bottom ── */}
-          {recentOrders.length > 0 && (
-            <TouchableOpacity
-              style={styles.goToOrdersBanner}
-              onPress={handleOrders}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.goToOrdersText}>
-                📋 Manage All Orders & Status
-              </Text>
-              <Text style={styles.goToOrdersArrow}>→</Text>
-            </TouchableOpacity>
-          )}
+          {/* ── "Order History" banner at the bottom ── */}
+          <TouchableOpacity
+            style={styles.goToOrdersBanner}
+            onPress={handleOrders}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.goToOrdersText}>
+              📜 Order History
+            </Text>
+            <Text style={styles.goToOrdersArrow}>→</Text>
+          </TouchableOpacity>
         </ScrollView>
 
         {/* ── Bottom Navigation ── */}
