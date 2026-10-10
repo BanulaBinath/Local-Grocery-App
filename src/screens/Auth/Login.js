@@ -1,14 +1,14 @@
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -234,25 +234,7 @@ export default function Login() {
           </View>
 
           {/* Customer Feedback for Visitors and Customers */}
-          <TouchableOpacity
-            style={styles.feedbackCard}
-            onPress={() =>
-              router.push({
-                pathname: "/customer-feedbacks",
-                params: { readOnly: "true" },
-              })
-            }
-            activeOpacity={0.85}
-          >
-            <Text style={styles.feedbackIcon}>⭐</Text>
-            <View style={styles.feedbackTextWrap}>
-              <Text style={styles.feedbackTitle}>Customer Reviews & Feedback</Text>
-              <Text style={styles.feedbackSubtitle}>
-                See verified ratings & feedback from local shoppers
-              </Text>
-            </View>
-            <Text style={styles.feedbackArrow}>›</Text>
-          </TouchableOpacity>
+          
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

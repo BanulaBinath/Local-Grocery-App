@@ -10,5 +10,15 @@ export default function HomeRoute() {
     router.push("/register-choice");
   };
 
-  return <Home onLogin={handleLogin} onRegister={handleRegister} />;
+  const handleFeedback = () => {
+    router.push("/customer-feedbacks");
+  };
+
+  return (
+    <Home
+      onLogin={handleLogin}
+      onRegister={handleRegister}
+      onFeedback={handleFeedback}
+    />
+  );
 }
