@@ -34,6 +34,11 @@ router.post("/login", async (req, res) => {
     });
 
     if (customer) {
+      if (customer.isBlocked) {
+        return res.status(403).json({
+          message: "This customer account has been blocked.",
+        });
+      }
       const passwordMatch = await bcrypt.compare(password, customer.password);
 
       if (!passwordMatch) {
@@ -139,6 +144,11 @@ router.post("/login", async (req, res) => {
     });
 
     if (supplierStaff) {
+      if (supplierStaff.isActive === false) {
+        return res.status(403).json({
+          message: "This staff account has been deactivated.",
+        });
+      }
       const passwordMatch = await bcrypt.compare(
         password,
         supplierStaff.password,
@@ -164,6 +174,8 @@ router.post("/login", async (req, res) => {
           phoneNumber: supplierStaff.phoneNumber,
           role: supplierStaff.role,
           mustChangePassword: supplierStaff.mustChangePassword,
+          isActive: supplierStaff.isActive !== false,
+          permissions: supplierStaff.permissions,
         },
       });
     }
@@ -177,6 +189,11 @@ router.post("/login", async (req, res) => {
     });
 
     if (customerStaff) {
+      if (customerStaff.isActive === false) {
+        return res.status(403).json({
+          message: "This staff account has been deactivated.",
+        });
+      }
       const passwordMatch = await bcrypt.compare(
         password,
         customerStaff.password,
@@ -202,6 +219,8 @@ router.post("/login", async (req, res) => {
           phoneNumber: customerStaff.phoneNumber,
           role: customerStaff.role,
           mustChangePassword: customerStaff.mustChangePassword,
+          isActive: customerStaff.isActive !== false,
+          permissions: customerStaff.permissions,
         },
       });
     }

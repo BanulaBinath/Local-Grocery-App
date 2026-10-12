@@ -109,6 +109,13 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    marginBottom: 14,
+  },
+
   name: {
     fontSize: 24,
     fontWeight: "700",
@@ -223,6 +230,32 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  editButton: {
+    backgroundColor: "#1E3A8A",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  deleteButton: {
+    alignItems: "center",
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+
+  deleteButtonText: {
+    color: "#B91C1C",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

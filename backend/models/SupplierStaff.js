@@ -54,6 +54,22 @@ const supplierStaffSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    permissions: {
+      manageSupplyOrders: {
+        type: Boolean,
+        default: true,
+      },
+      manageMessages: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   {
     timestamps: true,

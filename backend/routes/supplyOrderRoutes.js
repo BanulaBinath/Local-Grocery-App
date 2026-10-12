@@ -3,6 +3,7 @@ const express = require("express");
 const SupplyOrder = require("../models/SupplyOrder");
 const Product = require("../models/Product");
 const SupplierStaff = require("../models/SupplierStaff");
+const StoreSetting = require("../models/StoreSetting");
 
 const router = express.Router();
 
@@ -11,6 +12,37 @@ const router = express.Router();
 // ==================================================
 router.post("/", async (req, res) => {
   try {
+    const settings = await StoreSetting.findOne({ key: "default" });
+
+    if (settings && !settings.isStoreOpen) {
+      return res.status(403).json({
+        message: "The store is currently closed and not accepting orders.",
+      });
+    }
+
+    if (settings?.openingTime && settings?.closingTime) {
+      const currentMinutes =
+        new Date().getHours() * 60 + new Date().getMinutes();
+      const [openingHour, openingMinute] = settings.openingTime
+        .split(":")
+        .map(Number);
+      const [closingHour, closingMinute] = settings.closingTime
+        .split(":")
+        .map(Number);
+      const openingMinutes = openingHour * 60 + openingMinute;
+      const closingMinutes = closingHour * 60 + closingMinute;
+      const outsideHours =
+        openingMinutes <= closingMinutes
+          ? currentMinutes < openingMinutes || currentMinutes > closingMinutes
+          : currentMinutes < openingMinutes && currentMinutes > closingMinutes;
+
+      if (outsideHours) {
+        return res.status(403).json({
+          message: `Orders are accepted between ${settings.openingTime} and ${settings.closingTime}.`,
+        });
+      }
+    }
+
     const {
       supplierStaffId,
       supplierId,

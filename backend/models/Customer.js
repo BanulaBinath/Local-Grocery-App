@@ -38,6 +38,11 @@ const customerSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
