@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
+import CustomerBottomNav from "./CustomerBottomNav";
 import styles from "./OrderHistory.styles";
 
 const STEPS = ["Ordered", "Accepted", "Preparing", "Ready"];
@@ -515,6 +516,7 @@ export default function OrderHistory() {
             </KeyboardAvoidingView>
           </SafeAreaView>
         </Modal>
+        <CustomerBottomNav active="orders" />
       </View>
     </SafeAreaView>
   );

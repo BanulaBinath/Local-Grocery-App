@@ -60,7 +60,7 @@ export default StyleSheet.create({
 
   list: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
 
   emptyContainer: {

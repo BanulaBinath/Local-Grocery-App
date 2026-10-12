@@ -409,6 +409,14 @@ export default function CustomerStaffDashboard() {
 
           <TouchableOpacity
             style={styles.navItem}
+            onPress={() => router.push("/customer-staff-supply-orders")}
+          >
+            <Text style={styles.navIcon}>📥</Text>
+            <Text style={styles.navLabel}>Supply</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
             onPress={() => router.push("/customer-staff-messages")}
           >
             <Text style={styles.navIcon}>💬</Text>

@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
+
+const CARD_WIDTH = (Dimensions.get("window").width - 36) / 2;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -65,9 +67,32 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingTop: 16,
-    paddingBottom: 120,
+    paddingBottom: 24,
+  },
+
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    height: 46,
+    marginBottom: 12,
+  },
+
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0F172A",
   },
 
   heroSection: {
@@ -157,6 +182,122 @@ const styles = StyleSheet.create({
   },
 
   // Product List
+  productGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  productCard: {
+    width: CARD_WIDTH,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 3,
+    marginBottom: 4,
+  },
+
+  productImageBox: {
+    height: 130,
+    backgroundColor: "#F0FDF4",
+    position: "relative",
+  },
+
+  productImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  productImagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0FDF4",
+  },
+
+  productImageIcon: {
+    fontSize: 44,
+  },
+
+  stockBadgeOverlay: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#15803D",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+
+  stockBadgeOverlayOut: {
+    backgroundColor: "#EF4444",
+  },
+
+  stockBadgeOverlayText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  productBody: {
+    padding: 10,
+  },
+
+  gridProductName: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+
+  categoryPillSmall: {
+    alignSelf: "flex-start",
+    backgroundColor: "#DCFCE7",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginBottom: 6,
+  },
+
+  categoryPillSmallText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#166534",
+  },
+
+  productBottom: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+
+  gridProductPrice: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#15803D",
+  },
+
+  productUnit: {
+    fontSize: 10,
+    color: "#64748B",
+    fontWeight: "600",
+    marginLeft: 2,
+  },
+
+  productQty: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 3,
+    fontWeight: "500",
+  },
+
   emptyContainer: {
     alignItems: "center",
     paddingVertical: 40,

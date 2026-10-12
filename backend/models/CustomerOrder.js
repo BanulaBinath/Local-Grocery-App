@@ -151,6 +151,18 @@ const customerOrderSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+
+    pickupDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    pickupTime: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   {
     timestamps: true,

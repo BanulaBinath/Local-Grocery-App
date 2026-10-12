@@ -16,9 +16,11 @@ const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const supplyOrderRoutes = require("./routes/supplyOrderRoutes");
+const customerStaffSupplyRoutes = require("./routes/customerStaffSupplyRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const shopProductRoutes = require("./routes/shopProductRoutes");
 const customerOrderRoutes = require("./routes/customerOrderRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
 
 // ========================================
 // APP
@@ -60,11 +62,16 @@ app.use("/api/staff", staffRoutes);
 
 app.use("/api/supply-orders", supplyOrderRoutes);
 
+app.use("/api/customer-staff/supply-orders", customerStaffSupplyRoutes);
+
 app.use("/api/messages", messageRoutes);
 
 app.use("/api/shop-products", shopProductRoutes);
 
 app.use("/api/customer-orders", customerOrderRoutes);
+
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/feedbacks", feedbackRoutes);
 
 // ========================================
 // ROOT ROUTE

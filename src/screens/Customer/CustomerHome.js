@@ -7,31 +7,33 @@ import {
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 
 import { API_URL } from "../../constants/api";
+import CustomerBottomNav from "./CustomerBottomNav";
+import { addProductToCart } from "./customerCartStorage";
 import styles from "./CustomerHome.styles";
 
 const CATEGORIES = [
-  { id: "All", label: "All Items", icon: "🛍️" },
+  { id: "All", label: "All", icon: "🛍️" },
   { id: "Vegetables", label: "Vegetables", icon: "🥬" },
   { id: "Fruits", label: "Fruits", icon: "🍎" },
   { id: "Grocery", label: "Grocery", icon: "🛒" },
+  { id: "Grains", label: "Grains", icon: "🌾" },
   { id: "Spices", label: "Spices", icon: "🌶️" },
 ];
 
 export default function CustomerHome() {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [cart, setCart] = useState({});
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [placing, setPlacing] = useState(false);
 
   const fetchProducts = async (isSilent = false) => {
     try {
@@ -39,7 +41,6 @@ export default function CustomerHome() {
       const data = await response.json();
 
       if (response.ok) {
-        // Keep all active products so we can show both in-stock and out-of-stock items
         setProducts(data.products || []);
       } else if (!isSilent) {
         Alert.alert("Error", data.message || "Could not load products.");
@@ -69,62 +70,37 @@ export default function CustomerHome() {
   );
 
   const getImageUrl = (product) => {
-    if (product.image && !product.image.startsWith("file://")) {
-      if (product.image.startsWith("http://") || product.image.startsWith("https://")) {
-        return product.image;
-      }
-      return `${API_URL}${product.image.startsWith("/") ? product.image : `/${product.image}`}`;
+    if (!product?.image || String(product.image).startsWith("file://")) {
+      return null;
     }
-    const name = (product.name || "").toLowerCase();
-    if (name.includes("banana")) return "https://images.unsplash.com/photo-1571501478200-720615709ee0?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Vegetables") return "https://images.unsplash.com/photo-1566385101042-1a0e10ccff12?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Fruits") return "https://images.unsplash.com/photo-1610832958506-aa56368149eb?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Grains") return "https://images.unsplash.com/photo-1586201375761-83865001e8aa?auto=format&fit=crop&w=200&q=80";
-    if (product.category === "Spices") return "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=200&q=80";
-    return null;
+    if (
+      String(product.image).startsWith("http://") ||
+      String(product.image).startsWith("https://")
+    ) {
+      return product.image;
+    }
+    return `${API_URL}${
+      String(product.image).startsWith("/") ? product.image : `/${product.image}`
+    }`;
   };
 
-  const handleProfile = () => {
-    router.push("/customer-profile");
+  const getCategoryIcon = (category) => {
+    const pCat = (category || "").toLowerCase();
+    if (pCat.includes("veg")) return "🥬";
+    if (pCat.includes("fruit")) return "🍎";
+    if (pCat.includes("grain")) return "🌾";
+    if (pCat.includes("spice")) return "🌶️";
+    return "🛒";
   };
 
-  const handleOrders = () => {
-    router.push("/order-history");
-  };
-
-  const handleProducts = () => {
-    router.push("/customer-products");
-  };
-
-  const updateQty = (product, delta) => {
-    const stockQty = Number(product.stockQuantity) || 0;
-    const isOutOfStock = !product.inStock || stockQty <= 0;
-
-    if (isOutOfStock && delta > 0) {
+  const openProductCheckout = async (product, isOutOfStock) => {
+    if (isOutOfStock) {
       Alert.alert("Out of Stock", `${product.name} is currently out of stock.`);
       return;
     }
 
-    setCart((prev) => {
-      const current = prev[product._id] || 0;
-      const next = current + delta;
-
-      if (next > stockQty && delta > 0) {
-        Alert.alert(
-          "Stock Limit Reached",
-          `Only ${stockQty} ${product.unit} available in stock.`,
-        );
-        return prev;
-      }
-
-      if (next <= 0) {
-        const copy = { ...prev };
-        delete copy[product._id];
-        return copy;
-      }
-
-      return { ...prev, [product._id]: next };
-    });
+    await addProductToCart(product);
+    router.push("/customer-cart");
   };
 
   const matchesCategory = (product, categoryId) => {
@@ -141,100 +117,23 @@ export default function CustomerHome() {
         pCat.includes("general")
       );
     }
+    if (target === "grains") return pCat.includes("grain");
     if (target === "spices") return pCat.includes("spice");
 
     return pCat === target;
   };
 
-  const filteredProducts = products.filter((p) =>
-    matchesCategory(p, selectedCategory),
-  );
-
-  const getProductIcon = (product) => {
-    const pCat = (product.category || "").toLowerCase();
-    if (pCat.includes("veg")) return "🥬";
-    if (pCat.includes("fruit")) return "🍎";
-    if (pCat.includes("spice")) return "🌶️";
-    if (pCat.includes("dairy")) return "🥛";
-    return "🛒";
-  };
-
-  const cartItems = Object.entries(cart)
-    .map(([productId, quantity]) => {
-      const product = products.find((p) => p._id === productId);
-      if (!product) return null;
-      return { product, quantity };
-    })
-    .filter(Boolean);
-
-  const cartTotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  );
-
-  const placeOrder = async () => {
-    if (cartItems.length === 0) {
-      Alert.alert("Empty Cart", "Add products to your cart before ordering.");
-      return;
-    }
-
-    try {
-      setPlacing(true);
-      const customerData = await AsyncStorage.getItem("customer");
-
-      if (!customerData) {
-        Alert.alert("Error", "Please log in to place an order.");
-        return;
-      }
-
-      const customer = JSON.parse(customerData);
-
-      const response = await fetch(`${API_URL}/api/customer-orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId: customer.id,
-          deliveryFee: 100,
-          items: cartItems.map((item) => ({
-            productId: item.product._id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setCart({});
-        Alert.alert(
-          "Order Placed 🎉",
-          `Order #${data.order.orderNumber} placed successfully!`,
-          [
-            {
-              text: "View Orders",
-              onPress: () => router.push("/order-history"),
-            },
-            { text: "OK" },
-          ],
-        );
-        fetchProducts();
-      } else {
-        Alert.alert("Order Failed", data.message || "Could not place order.");
-      }
-    } catch (error) {
-      console.log("Place order error:", error);
-      Alert.alert("Connection Error", "Could not connect to the server.");
-    } finally {
-      setPlacing(false);
-    }
-  };
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = search
+      ? (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (p.category || "").toLowerCase().includes(search.toLowerCase())
+      : true;
+    return matchesSearch && matchesCategory(p, selectedCategory);
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.logo}>Local Grocery</Text>
@@ -243,7 +142,7 @@ export default function CustomerHome() {
 
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={handleProfile}
+            onPress={() => router.push("/customer-profile")}
           >
             <Text style={styles.profileIcon}>👤</Text>
           </TouchableOpacity>
@@ -270,22 +169,15 @@ export default function CustomerHome() {
                 />
               }
             >
-              {/* Hero Banner */}
-              <View style={styles.heroSection}>
-                <Text style={styles.heroTitle}>Fresh Groceries,</Text>
-                <Text style={styles.heroSubtitle}>Real-Time Stock.</Text>
-                <Text style={styles.heroDescription}>
-                  Order directly from local inventory with live stock status.
-                </Text>
-              </View>
-
-              {/* Category Filter Pills */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Categories</Text>
-                <Text style={styles.sectionSubtitle}>
-                  {filteredProducts.length} Product
-                  {filteredProducts.length !== 1 ? "s" : ""}
-                </Text>
+              <View style={styles.searchContainer}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search products..."
+                  placeholderTextColor="#94A3B8"
+                  value={search}
+                  onChangeText={setSearch}
+                />
               </View>
 
               <ScrollView
@@ -320,7 +212,6 @@ export default function CustomerHome() {
                 })}
               </ScrollView>
 
-              {/* Products List */}
               {filteredProducts.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyIcon}>📦</Text>
@@ -330,173 +221,84 @@ export default function CustomerHome() {
                   </Text>
                 </View>
               ) : (
-                filteredProducts.map((product) => {
-                  const qty = cart[product._id] || 0;
-                  const stockQuantity = Number(product.stockQuantity) || 0;
-                  const isOutOfStock =
-                    !product.inStock || stockQuantity <= 0;
+                <View style={styles.productGrid}>
+                  {filteredProducts.map((product) => {
+                    const stockQuantity = Number(product.stockQuantity) || 0;
+                    const isOutOfStock = !product.inStock || stockQuantity <= 0;
+                    const imageUrl = getImageUrl(product);
 
-                  return (
-                    <View
-                      key={product._id}
-                      style={[
-                        styles.card,
-                        isOutOfStock && styles.cardDisabled,
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.cardLeft,
-                          isOutOfStock && styles.cardLeftDisabled,
-                          { overflow: 'hidden' }
-                        ]}
+                    return (
+                      <TouchableOpacity
+                        key={product._id}
+                        style={styles.productCard}
+                        activeOpacity={0.88}
+                        onPress={() =>
+                          openProductCheckout(product, isOutOfStock)
+                        }
                       >
-                        {getImageUrl(product) ? (
-                          <Image
-                            source={{ uri: getImageUrl(product) }}
-                            style={{ width: "100%", height: "100%", borderRadius: 12 }}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <Text style={styles.productIcon}>
-                            {getProductIcon(product)}
-                          </Text>
-                        )}
-                      </View>
-
-                      <View style={styles.cardBody}>
-                        <View style={styles.productHeaderRow}>
-                          <Text style={styles.productName}>{product.name}</Text>
-                          {product.category ? (
-                            <Text style={styles.categoryTag}>
-                              {product.category}
-                            </Text>
-                          ) : null}
-                        </View>
-
-                        <Text style={styles.productPrice}>
-                          Rs. {Number(product.price).toFixed(2)} / {product.unit}
-                        </Text>
-
-                        {/* Stock Status Badge */}
-                        <View style={styles.stockRow}>
-                          {isOutOfStock ? (
-                            <View style={styles.outOfStockBadge}>
-                              <Text style={styles.outOfStockText}>
-                                Out of Stock
-                              </Text>
-                            </View>
+                        <View style={styles.productImageBox}>
+                          {imageUrl ? (
+                            <Image
+                              source={{ uri: imageUrl }}
+                              style={styles.productImage}
+                              resizeMode="cover"
+                            />
                           ) : (
-                            <View style={styles.inStockBadge}>
-                              <Text style={styles.inStockText}>
-                                In Stock ({stockQuantity} {product.unit})
+                            <View style={styles.productImagePlaceholder}>
+                              <Text style={styles.productImageIcon}>
+                                {getCategoryIcon(product.category)}
                               </Text>
                             </View>
                           )}
-                        </View>
-                      </View>
-
-                      {/* Quantity Controls / Order Button */}
-                      {isOutOfStock ? (
-                        <TouchableOpacity
-                          style={[styles.addButton, styles.addButtonDisabled]}
-                          disabled={true}
-                        >
-                          <Text style={styles.addButtonTextDisabled}>
-                            Out of Stock
-                          </Text>
-                        </TouchableOpacity>
-                      ) : qty > 0 ? (
-                        <View style={styles.qtyControls}>
-                          <TouchableOpacity
-                            style={styles.qtyButton}
-                            onPress={() => updateQty(product, -1)}
-                          >
-                            <Text style={styles.qtyButtonText}>−</Text>
-                          </TouchableOpacity>
-                          <Text style={styles.qtyValue}>{qty}</Text>
-                          <TouchableOpacity
+                          <View
                             style={[
-                              styles.qtyButton,
-                              qty >= stockQuantity && styles.qtyButtonDisabled,
+                              styles.stockBadgeOverlay,
+                              isOutOfStock && styles.stockBadgeOverlayOut,
                             ]}
-                            onPress={() => updateQty(product, 1)}
-                            disabled={qty >= stockQuantity}
                           >
-                            <Text
-                              style={[
-                                styles.qtyButtonText,
-                                qty >= stockQuantity &&
-                                  styles.qtyButtonTextDisabled,
-                              ]}
-                            >
-                              +
+                            <Text style={styles.stockBadgeOverlayText}>
+                              {isOutOfStock ? "Out of Stock" : "In Stock"}
                             </Text>
-                          </TouchableOpacity>
+                          </View>
                         </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={() => updateQty(product, 1)}
-                        >
-                          <Text style={styles.addButtonText}>+ Add</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
-                })
+
+                        <View style={styles.productBody}>
+                          <Text style={styles.gridProductName} numberOfLines={1}>
+                            {product.name}
+                          </Text>
+                          {product.category ? (
+                            <View style={styles.categoryPillSmall}>
+                              <Text style={styles.categoryPillSmallText}>
+                                {getCategoryIcon(product.category)}{" "}
+                                {product.category}
+                              </Text>
+                            </View>
+                          ) : null}
+                          <View style={styles.productBottom}>
+                            <Text style={styles.gridProductPrice}>
+                              Rs.{Number(product.price).toFixed(0)}
+                            </Text>
+                            <Text style={styles.productUnit}>
+                              /{product.unit || "pcs"}
+                            </Text>
+                          </View>
+                          <Text style={styles.productQty}>
+                            {isOutOfStock
+                              ? "No stock"
+                              : `${stockQuantity} available`}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               )}
             </ScrollView>
           )}
         </View>
 
-        {/* Floating Cart Footer */}
-        {cartItems.length > 0 ? (
-          <View style={styles.cartFooter}>
-            <View style={styles.cartInfo}>
-              <Text style={styles.cartCount}>
-                {cartItems.reduce((acc, i) => acc + i.quantity, 0)} Items Selected
-              </Text>
-              <Text style={styles.cartTotal}>
-                Rs. {cartTotal.toFixed(2)}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.checkoutButton}
-              onPress={placeOrder}
-              disabled={placing}
-            >
-              <Text style={styles.checkoutButtonText}>
-                {placing ? "Placing..." : "Order Now"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        {/* Bottom Navigation */}
-        <View style={styles.bottomNavigation}>
-          <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>🏠</Text>
-            <Text style={styles.activeNavText}>Home</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={handleProducts}>
-            <Text style={styles.navIcon}>🛒</Text>
-            <Text style={styles.navText}>Products</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={handleOrders}>
-            <Text style={styles.navIcon}>📦</Text>
-            <Text style={styles.navText}>Orders</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={handleProfile}>
-            <Text style={styles.navIcon}>👤</Text>
-            <Text style={styles.navText}>Profile</Text>
-          </TouchableOpacity>
-        </View>
+        <CustomerBottomNav active="home" />
       </View>
     </SafeAreaView>
   );
 }
-

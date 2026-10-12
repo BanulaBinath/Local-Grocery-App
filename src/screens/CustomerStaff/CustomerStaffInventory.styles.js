@@ -308,6 +308,8 @@ export default StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 20,
+    elevation: 20,
     height: 72,
     backgroundColor: WHITE,
     borderTopWidth: 1,
@@ -320,7 +322,6 @@ export default StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 12,
   },
   navItem: {
     alignItems: "center",

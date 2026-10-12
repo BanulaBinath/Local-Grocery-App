@@ -90,6 +90,22 @@ const supplyOrderSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+
+    storeReceived: {
+      type: Boolean,
+      default: false,
+    },
+
+    storeReceivedAt: {
+      type: Date,
+      default: null,
+    },
+
+    storeReceivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CustomerStaff",
+      default: null,
+    },
   },
   {
     timestamps: true,

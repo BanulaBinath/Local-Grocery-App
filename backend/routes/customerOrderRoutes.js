@@ -40,6 +40,8 @@ router.post("/", async (req, res) => {
       deliveryFee = 0,
       note = "",
       customerPhone = "",
+      pickupDate = "",
+      pickupTime = "",
     } = req.body;
 
     if (!customerId || !Array.isArray(items) || items.length === 0) {
@@ -115,6 +117,8 @@ router.post("/", async (req, res) => {
       totalAmount,
       status: "pending",
       note: note ? String(note).trim() : "",
+      pickupDate: pickupDate ? String(pickupDate).trim() : "",
+      pickupTime: pickupTime ? String(pickupTime).trim() : "",
       statusHistory: [
         {
           status: "pending",

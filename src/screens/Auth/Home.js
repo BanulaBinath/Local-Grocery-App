@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import styles from "./Home.styles";
 
-export default function Home({ onLogin, onRegister }) {
+export default function Home({ onLogin, onRegister, onFeedback }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -58,7 +58,7 @@ export default function Home({ onLogin, onRegister }) {
           </TouchableOpacity>
 
           {/* Feedback */}
-          <TouchableOpacity style={styles.feedbackButton} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.feedbackButton} onPress={onFeedback} activeOpacity={0.7}>
             <Text style={styles.feedbackIcon}>💬</Text>
             <Text style={styles.feedbackText}>Feedback</Text>
           </TouchableOpacity>

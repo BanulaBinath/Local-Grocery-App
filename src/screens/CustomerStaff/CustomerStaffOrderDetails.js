@@ -144,6 +144,44 @@ const formatDate = (value) => {
   });
 };
 
+const formatPickupDate = (value) => {
+  if (!value) return "";
+
+  const d = new Date(value);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  return String(value);
+};
+
+const getPickupDetails = (order) => {
+  let pickupDate = formatPickupDate(order?.pickupDate);
+  let pickupTime = order?.pickupTime ? String(order.pickupTime).trim() : "";
+
+  if ((!pickupDate || !pickupTime) && order?.note) {
+    const parts = String(order.note)
+      .split("·")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts[0]?.toLowerCase().includes("pickup")) {
+      if (!pickupDate && parts[1]) pickupDate = parts[1];
+      if (!pickupTime && parts[2]) pickupTime = parts[2];
+    }
+  }
+
+  return {
+    pickupDate: pickupDate || "Not provided",
+    pickupTime: pickupTime || "Not provided",
+  };
+};
+
 export default function CustomerStaffOrderDetails() {
   const { orderId } = useLocalSearchParams();
 
@@ -507,6 +545,8 @@ export default function CustomerStaffOrderDetails() {
     "cancelled",
   ].includes(order.status);
 
+  const pickup = getPickupDetails(order);
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: C.bg }}
@@ -684,6 +724,31 @@ export default function CustomerStaffOrderDetails() {
                 </Text>
               </View>
             )}
+        </View>
+
+        <View
+          style={[
+            card,
+            {
+              marginBottom: 14,
+              backgroundColor: C.primarySf,
+              borderWidth: 1,
+              borderColor: "#BBF7D0",
+            },
+          ]}
+        >
+          <Text style={sectionTitle}>📅 Customer Pickup Slot</Text>
+
+          <InfoRow
+            icon="📅"
+            label="Pickup Date"
+            value={pickup.pickupDate}
+          />
+          <InfoRow
+            icon="⏰"
+            label="Pickup Time Slot"
+            value={pickup.pickupTime}
+          />
         </View>
 
         {/* Order progress */}
@@ -999,11 +1064,7 @@ export default function CustomerStaffOrderDetails() {
             value={order.customerPhone || "Not provided"}
           />
 
-          <InfoRow
-            icon="📍"
-            label="Address"
-            value={order.customerAddress || "Not provided"}
-          />
+
 
           <TouchableOpacity
             style={{
@@ -1046,15 +1107,14 @@ export default function CustomerStaffOrderDetails() {
           <Text style={sectionTitle}>📋 Order Info</Text>
 
           <InfoRow
-            icon="🆔"
-            label="Order ID"
-            value={`#${order.orderNumber}`}
+            icon="📅"
+            label="Pickup Date"
+            value={pickup.pickupDate}
           />
-
           <InfoRow
-            icon="💳"
-            label="Payment"
-            value={order.paymentMethod || "Cash on Delivery"}
+            icon="⏰"
+            label="Pickup Time Slot"
+            value={pickup.pickupTime}
           />
 
           <InfoRow

@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
   Modal,
   RefreshControl,
@@ -111,10 +112,24 @@ export default function CustomerStaffInventory() {
     }
   };
 
+  const goHome = () => {
+    router.replace("/customer-staff-dashboard");
+  };
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
       fetchProducts();
+
+      const onBackPress = () => {
+        goHome();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+      return () => subscription.remove();
     }, []),
   );
 
@@ -303,6 +318,22 @@ export default function CustomerStaffInventory() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <View style={styles.loadingContainer}>
+          <TouchableOpacity
+            onPress={goHome}
+            style={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: "#F0FDF4",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 18, color: "#15803D", fontWeight: "700" }}>←</Text>
+          </TouchableOpacity>
           <View style={styles.loadingSpinner}>
             <ActivityIndicator size="large" color="#15803D" />
           </View>
@@ -324,13 +355,7 @@ export default function CustomerStaffInventory() {
           <View style={styles.headerTopRow}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
-                onPress={() => {
-                  if (router.canGoBack()) {
-                    router.back();
-                  } else {
-                    router.replace("/customer-staff-dashboard");
-                  }
-                }}
+                onPress={goHome}
                 style={{
                   width: 36,
                   height: 36,
@@ -489,7 +514,7 @@ export default function CustomerStaffInventory() {
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.replace("/customer-staff-dashboard")}
+            onPress={goHome}
           >
             <Text style={styles.navIcon}>🏠</Text>
             <Text style={styles.navLabel}>Home</Text>
@@ -499,6 +524,14 @@ export default function CustomerStaffInventory() {
             <View style={styles.navActiveIndicator} />
             <Text style={styles.navIconActive}>📦</Text>
             <Text style={styles.navLabelActive}>Inventory</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/customer-staff-supply-orders")}
+          >
+            <Text style={styles.navIcon}>📥</Text>
+            <Text style={styles.navLabel}>Supply</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
