@@ -78,17 +78,27 @@ const PORT = process.env.PORT || 5000;
 // MONGODB CONNECTION
 // ========================================
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("MongoDB connected successfully!");
+const mongoUri = process.env.MONGODB_URI;
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error("MongoDB connection failed:");
+if (!mongoUri) {
+ console.error("MongoDB connection failed: MONGODB_URI is not configured.");
+ process.exitCode = 1;
+} else {
+ mongoose
+   .connect(mongoUri)
+   .then(() => {
+     console.log("MongoDB connected successfully!");
 
-    console.error(error.message);
-  });
+     app.listen(PORT, () => {
+       console.log(`Server running on http://localhost:${PORT}`);
+     });
+   })
+   .catch((error) => {
+     console.error("MongoDB connection failed:");
+     console.error(error.message);
+     console.error(
+       "Check backend/.env and use a reachable MongoDB URI, such as mongodb://127.0.0.1:27017/local-grocery-app for local development."
+     );
+     process.exitCode = 1;
+   });
+}
